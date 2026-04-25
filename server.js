@@ -20,8 +20,7 @@ app.get("/", (req, res) => {
 
 app.post("/create-checkout", async (req, res) => {
   try {
-    const { amount, email } = req.body;
-
+    const { amount, email, nom, tel, addr, cp, ville } = req.body;
     if (!amount || !email) {
       return res.status(400).json({ error: "Montant ou email manquant" });
     }
@@ -31,11 +30,21 @@ app.post("/create-checkout", async (req, res) => {
       to: email,
       subject: "Commande reçue - Keep Cold",
       html: `
-        <h2>Commande reçue ✅</h2>
-        <p>Merci pour ta commande Keep Cold.</p>
-        <p><strong>Montant :</strong> ${amount} €</p>
-        <p>Nous préparons la suite et tu recevras les prochaines informations par email.</p>
-      `
+  <h2>Commande reçue ✅</h2>
+  <p><strong>Montant :</strong> ${amount} €</p>
+
+  <h3>Infos client :</h3>
+  <p>
+    Nom : ${nom}<br>
+    Téléphone : ${tel}<br>
+    Email : ${email}<br>
+    Adresse : ${addr}<br>
+    Code postal : ${cp}<br>
+    Ville : ${ville}
+  </p>
+
+  <p>Nous préparons la commande 📦</p>
+`
     });
 
     return res.json({
