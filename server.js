@@ -21,9 +21,10 @@ app.get("/", (req, res) => {
 app.post("/create-checkout", async (req, res) => {
   try {
     const { amount, email, nom, tel, addr, cp, ville } = req.body;
-    if (!amount || !email) {
-      return res.status(400).json({ error: "Montant ou email manquant" });
-    }
+
+if (!amount || !email || !nom || !tel || !addr || !cp || !ville) {
+  return res.status(400).json({ error: "Infos client manquantes" });
+}
 
     await resend.emails.send({
       from: "Keep Cold <onboarding@resend.dev>",
