@@ -1,39 +1,40 @@
 const express = require("express");
-const fetch = require("node-fetch");
-
 const app = express();
+
 app.use(express.json());
 
-app.post("/create-checkout", async (req, res) => {
-  const { amount } = req.body;
+// 🔥 autorise ton site à appeler ton serveur
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
 
-  try {
-    const response = await fetch("https://api.sumup.com/v0.1/checkouts", {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer TON_TOKEN_SUMUP",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        checkout_reference: "order-" + Date.now(),
-        amount: amount,
-        currency: "EUR",
-        pay_to_email: "TON_EMAIL_SUMUP",
-        description: "Commande Keep Cold"
-      })
-    });
-
-    const data = await response.json();
-
-    res.json({
-      url: data.hosted_checkout_url
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: "Erreur paiement" });
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
   }
+
+  next();
 });
 
-app.listen(3000, () => {
+// test simple
+app.get("/", (req, res) => {
+  res.send("Serveur KeepCold OK");
+});
+
+// paiement (mode test)
+app.post("/create-checkout", (req, res) => {
+  console.log("Requête reçue :", req.body);
+
+  return res.json({
+    success: false,
+    message: "Paiement pas encore actif"
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Serveur lancé sur le port " + PORT);
+});app.listen(3000, () => {
   console.log("Serveur lancé sur http://localhost:3000");
 });
