@@ -75,6 +75,7 @@ app.post("/mondial-relay", async (req, res) => {
       <CP>${cp}</CP>
       <Ville>${ville || ""}</Ville>
       <NombreResultats>5</NombreResultats>
+      <Security>${process.env.MR_PRIVATE_KEY}</Security>
     </WSI4_PointRelais_Recherche>
   </soap:Body>
 </soap:Envelope>`;
