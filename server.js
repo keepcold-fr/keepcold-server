@@ -66,40 +66,43 @@ app.post("/mondial-relay", async (req, res) => {
   const { cp, ville } = req.body;
 
   try {
-    const axios = require("axios");
-
     const xml = `
-    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://www.mondialrelay.fr/webservice/">
-      <soapenv:Header/>
-      <soapenv:Body>
-        <ws:WSI4_PointRelais_Recherche>
-          <ws:Enseigne>${process.env.MR_ENSEIGNE}</ws:Enseigne>
-          <ws:Pays>FR</ws:Pays>
-          <ws:CP>${cp}</ws:CP>
-          <ws:Ville>${ville}</ws:Ville>
-          <ws:NombreResultats>5</ws:NombreResultats>
-        </ws:WSI4_PointRelais_Recherche>
-      </soapenv:Body>
-    </soapenv:Envelope>
-    `;
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <WSI4_PointRelais_Recherche xmlns="http://www.mondialrelay.fr/webservice/">
+      <Enseigne>${process.env.MR_ENSEIGNE}</Enseigne>
+      <Pays>FR</Pays>
+      <CP>${cp}</CP>
+      <Ville>${ville || ""}</Ville>
+      <NombreResultats>5</NombreResultats>
+    </WSI4_PointRelais_Recherche>
+  </soap:Body>
+</soap:Envelope>`;
 
-    const response = await axios.post(
-      "https://api.mondialrelay.com/WebService.asmx",
-      xml,
-      {
-        headers: {
-          "Content-Type": "text/xml"
-        }
-      }
-    );
+    const response = await fetch("https://api.mondialrelay.com/WebService.asmx", {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/xml; charset=utf-8",
+        "SOAPAction": "http://www.mondialrelay.fr/webservice/WSI4_PointRelais_Recherche"
+      },
+      body: xml
+    });
 
-    console.log(response.data);
+    const text = await response.text();
 
-    res.send(response.data);
+    console.log("Réponse Mondial Relay :", text);
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erreur Mondial Relay" });
+    return res.json({
+      success: true,
+      raw: text
+    });
+
+  } catch (error) {
+    console.error("Erreur Mondial Relay :", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 app.listen(PORT, () => {
