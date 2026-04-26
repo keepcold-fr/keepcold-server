@@ -62,6 +62,34 @@ if (!amount || !email || !nom || !tel || !addr || !cp || !ville) {
 
 const PORT = process.env.PORT || 3000;
 
+app.post("/search-relays", async (req, res) => {
+  const { cp } = req.body;
+
+  try {
+    const url = "https://api.mondialrelay.com/WebService.asmx/WSI4_PointRelais_Recherche";
+
+    const params = new URLSearchParams({
+      Enseigne: "CC23WJF1",
+      Pays: "FR",
+      CP: cp,
+      Ville: "",
+      NombreResultats: "10",
+      Security: "" // on va le gérer après
+    });
+
+    const response = await fetch(url + "?" + params.toString());
+    const text = await response.text();
+
+    console.log(text);
+
+    res.json({ success: true, raw: text });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erreur Mondial Relay" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
