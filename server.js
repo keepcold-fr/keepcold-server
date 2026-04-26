@@ -63,19 +63,63 @@ if (!amount || !email || !nom || !tel || !addr || !cp || !ville) {
 const PORT = process.env.PORT || 3000;
 
 app.post("/mondial-relay", async (req, res) => {
+  const crypto = require("crypto");
   const { cp, ville } = req.body;
 
   try {
+    const enseigne = process.env.MR_ENSEIGNE;
+    const cle = process.env.MR_PRIVATE_KEY;
+
+    const params = {
+      Enseigne: enseigne,
+      Pays: "FR",
+      Ville: ville || "",
+      CP: cp,
+      Taille: "",
+      Poids: "",
+      Action: "",
+      DelaiEnvoi: "0",
+      RayonRecherche: "20",
+      TypeActivite: "",
+      NombreResultats: "5"
+    };
+
+    const securityString =
+      params.Enseigne +
+      params.Pays +
+      params.Ville +
+      params.CP +
+      params.Taille +
+      params.Poids +
+      params.Action +
+      params.DelaiEnvoi +
+      params.RayonRecherche +
+      params.TypeActivite +
+      params.NombreResultats +
+      cle;
+
+    const security = crypto
+      .createHash("md5")
+      .update(securityString)
+      .digest("hex")
+      .toUpperCase();
+
     const xml = `
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <WSI4_PointRelais_Recherche xmlns="http://www.mondialrelay.fr/webservice/">
-      <Enseigne>${process.env.MR_ENSEIGNE}</Enseigne>
-      <Pays>FR</Pays>
-      <CP>${cp}</CP>
-      <Ville>${ville || ""}</Ville>
-      <NombreResultats>5</NombreResultats>
-      <Security>${process.env.MR_PRIVATE_KEY}</Security>
+      <Enseigne>${params.Enseigne}</Enseigne>
+      <Pays>${params.Pays}</Pays>
+      <Ville>${params.Ville}</Ville>
+      <CP>${params.CP}</CP>
+      <Taille>${params.Taille}</Taille>
+      <Poids>${params.Poids}</Poids>
+      <Action>${params.Action}</Action>
+      <DelaiEnvoi>${params.DelaiEnvoi}</DelaiEnvoi>
+      <RayonRecherche>${params.RayonRecherche}</RayonRecherche>
+      <TypeActivite>${params.TypeActivite}</TypeActivite>
+      <NombreResultats>${params.NombreResultats}</NombreResultats>
+      <Security>${security}</Security>
     </WSI4_PointRelais_Recherche>
   </soap:Body>
 </soap:Envelope>`;
@@ -90,20 +134,13 @@ app.post("/mondial-relay", async (req, res) => {
     });
 
     const text = await response.text();
+    console.log("Réponse MR :", text);
 
-    console.log("Réponse Mondial Relay :", text);
-
-    return res.json({
-      success: true,
-      raw: text
-    });
+    return res.json({ success: true, raw: text });
 
   } catch (error) {
     console.error("Erreur Mondial Relay :", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 app.listen(PORT, () => {
