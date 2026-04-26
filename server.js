@@ -63,33 +63,66 @@ if (!amount || !email || !nom || !tel || !addr || !cp || !ville) {
 const PORT = process.env.PORT || 3000;
 
 app.post("/search-relays", async (req, res) => {
-  const { cp } = req.body;
+  const crypto = require("crypto");
+  const { cp, ville } = req.body;
+
+  const ENSEIGNE = process.env.MR_ENSEIGNE;
+  const CLE_PRIVEE = process.env.MR_PRIVATE_KEY;
 
   try {
-    const url = "https://api.mondialrelay.com/WebService.asmx/WSI4_PointRelais_Recherche";
-
-    const params = new URLSearchParams({
-      Enseigne: "CC23WJF1",
+    const params = {
+      Enseigne: ENSEIGNE,
       Pays: "FR",
+      Ville: ville || "",
       CP: cp,
-      Ville: "",
-      NombreResultats: "10",
-      Security: "" // on va le gérer après
+      Taille: "",
+      Poids: "",
+      Action: "",
+      DelaiEnvoi: "0",
+      RayonRecherche: "20",
+      TypeActivite: "",
+      NombreResultats: "10"
+    };
+
+    const chaine =
+      params.Enseigne +
+      params.Pays +
+      params.Ville +
+      params.CP +
+      params.Taille +
+      params.Poids +
+      params.Action +
+      params.DelaiEnvoi +
+      params.RayonRecherche +
+      params.TypeActivite +
+      params.NombreResultats +
+      CLE_PRIVEE;
+
+    params.Security = crypto
+      .createHash("md5")
+      .update(chaine)
+      .digest("hex")
+      .toUpperCase();
+
+    const url =
+      "https://api.mondialrelay.com/WebService.asmx/WSI4_PointRelais_Recherche?" +
+      new URLSearchParams(params).toString();
+
+    const response = await fetch(url);
+    const xml = await response.text();
+
+    console.log("Réponse Mondial Relay :", xml);
+
+    res.json({
+      success: true,
+      raw: xml
     });
 
-    const response = await fetch(url + "?" + params.toString());
-    const text = await response.text();
-
-    console.log(text);
-
-    res.json({ success: true, raw: text });
-
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erreur Mondial Relay" });
+    console.error("Erreur Mondial Relay :", error);
+    res.status(500).json({ error: "Erreur API Mondial Relay" });
   }
 });
-
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
