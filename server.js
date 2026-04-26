@@ -62,65 +62,44 @@ if (!amount || !email || !nom || !tel || !addr || !cp || !ville) {
 
 const PORT = process.env.PORT || 3000;
 
-app.post("/search-relays", async (req, res) => {
-  const crypto = require("crypto");
+app.post("/mondial-relay", async (req, res) => {
   const { cp, ville } = req.body;
 
-  const ENSEIGNE = process.env.MR_ENSEIGNE;
-  const CLE_PRIVEE = process.env.MR_PRIVATE_KEY;
-
   try {
-    const params = {
-      Enseigne: ENSEIGNE,
-      Pays: "FR",
-      Ville: ville || "",
-      CP: cp,
-      Taille: "",
-      Poids: "",
-      Action: "",
-      DelaiEnvoi: "0",
-      RayonRecherche: "20",
-      TypeActivite: "",
-      NombreResultats: "10"
-    };
+    const axios = require("axios");
 
-    const chaine =
-      params.Enseigne +
-      params.Pays +
-      params.Ville +
-      params.CP +
-      params.Taille +
-      params.Poids +
-      params.Action +
-      params.DelaiEnvoi +
-      params.RayonRecherche +
-      params.TypeActivite +
-      params.NombreResultats +
-      CLE_PRIVEE;
+    const xml = `
+    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://www.mondialrelay.fr/webservice/">
+      <soapenv:Header/>
+      <soapenv:Body>
+        <ws:WSI4_PointRelais_Recherche>
+          <ws:Enseigne>${process.env.MR_ENSEIGNE}</ws:Enseigne>
+          <ws:Pays>FR</ws:Pays>
+          <ws:CP>${cp}</ws:CP>
+          <ws:Ville>${ville}</ws:Ville>
+          <ws:NombreResultats>5</ws:NombreResultats>
+        </ws:WSI4_PointRelais_Recherche>
+      </soapenv:Body>
+    </soapenv:Envelope>
+    `;
 
-    params.Security = crypto
-      .createHash("md5")
-      .update(chaine)
-      .digest("hex")
-      .toUpperCase();
+    const response = await axios.post(
+      "https://api.mondialrelay.com/WebService.asmx",
+      xml,
+      {
+        headers: {
+          "Content-Type": "text/xml"
+        }
+      }
+    );
 
-    const url =
-      "https://api.mondialrelay.com/WebService.asmx/WSI4_PointRelais_Recherche?" +
-      new URLSearchParams(params).toString();
+    console.log(response.data);
 
-    const response = await fetch(url);
-    const xml = await response.text();
+    res.send(response.data);
 
-    console.log("Réponse Mondial Relay :", xml);
-
-    res.json({
-      success: true,
-      raw: xml
-    });
-
-  } catch (error) {
-    console.error("Erreur Mondial Relay :", error);
-    res.status(500).json({ error: "Erreur API Mondial Relay" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur Mondial Relay" });
   }
 });
 app.listen(PORT, () => {
