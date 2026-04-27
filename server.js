@@ -56,11 +56,22 @@ app.post("/create-checkout", async (req, res) => {
       });
     }
 
-    return res.json({
-  url: data.hosted_checkout_url || data.checkout_url,
+    // 2e appel pour récupérer l'URL de paiement
+const checkoutDetails = await fetch(`https://api.sumup.com/v0.1/checkouts/${data.id}`, {
+  method: "GET",
+  headers: {
+    "Authorization": "Bearer " + process.env.SUMUP_API_KEY
+  }
+});
+
+const checkoutData = await checkoutDetails.json();
+
+console.log("CHECKOUT DETAILS:", checkoutData);
+
+return res.json({
+  url: checkoutData.hosted_checkout_url,
   checkout_id: data.id,
-  reference: checkoutReference,
-  full: data
+  reference: checkoutReference
 });
 
   } catch (err) {
