@@ -20,43 +20,51 @@ app.get("/", (req, res) => {
 
 app.post("/create-checkout", async (req, res) => {
   try {
-    const { amount, email, nom, tel, addr, cp, ville } = req.body;
+    const { amount, email, nom, tel, addr, cp, ville, relais } = req.body;
 
-if (!amount || !email || !nom || !tel || !addr || !cp || !ville) {
-  return res.status(400).json({ error: "Infos client manquantes" });
-}
+    if (!amount || !email || !nom || !tel || !addr || !cp || !ville || !relais) {
+      return res.status(400).json({
+        error: "Infos client, panier ou point relais manquant"
+      });
+    }
 
-    await resend.emails.send({
-      from: "Keep Cold <onboarding@resend.dev>",
-      to: email,
-      subject: "Commande reçue - Keep Cold",
-      html: `
-  <h2>Commande reçue ✅</h2>
-  <p><strong>Montant :</strong> ${amount} €</p>
+    const checkoutReference = "KC-" + Date.now();
 
-  <h3>Infos client :</h3>
-  <p>
-    Nom : ${nom}<br>
-    Téléphone : ${tel}<br>
-    Email : ${email}<br>
-    Adresse : ${addr}<br>
-    Code postal : ${cp}<br>
-    Ville : ${ville}
-  </p>
-
-  <p>Nous préparons la commande 📦</p>
-`
+    const response = await fetch("https://api.sumup.com/v0.1/checkouts", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + process.env.SUMUP_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        checkout_reference: checkoutReference,
+        amount: Number(amount),
+        currency: "EUR",
+        pay_to_email: process.env.SUMUP_MERCHANT_EMAIL,
+        description: "Commande Keep Cold",
+        return_url: "https://keepcold.fr/panier-test.html"
+      })
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(500).json({
+        error: data.message || "Erreur création paiement SumUp",
+        details: data
+      });
+    }
 
     return res.json({
-      success: true,
-      message: "Email envoyé",
-      url: null
+      url: data.hosted_checkout_url,
+      checkout_id: data.id,
+      reference: checkoutReference
     });
 
-  } catch (error) {
-    console.error("Erreur serveur :", error);
-    return res.status(500).json({ error: "Erreur serveur" });
+  } catch (err) {
+    return res.status(500).json({
+      error: err.message
+    });
   }
 });
 
