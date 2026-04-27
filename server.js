@@ -42,7 +42,7 @@ body: JSON.stringify({
   currency: "EUR",
   pay_to_email: process.env.SUMUP_MERCHANT_EMAIL,
   description: "Commande Keep Cold",
-  return_url: "https://keepcold.fr/panier-test.html",
+  return_url: "https://keepcold.fr/merci.html",
   hosted_checkout: {
     enabled: true
   }
