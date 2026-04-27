@@ -82,8 +82,29 @@ console.log("CHECKOUT DETAILS:", checkoutData);
   }
 });
 
-const PORT = process.env.PORT || 3000;
 
+app.post("/confirm-order", async (req, res) => {
+  try {
+    const { email, nom, montant } = req.body;
+
+    await resend.emails.send({
+      from: "Keep Cold <contact@keepcold.fr>",
+      to: email,
+      subject: "Commande confirmée ❄️",
+      html: `
+        <h2>Merci ${nom} 🙌</h2>
+        <p>Ta commande Keep Cold est bien confirmée et payée.</p>
+        <p>Montant : ${montant} €</p>
+        <p>Nous préparons ta commande et t’enverrons le suivi très bientôt.</p>
+      `
+    });
+
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.post("/mondial-relay", async (req, res) => {
   const crypto = require("crypto");
   const { cp, ville } = req.body;
@@ -165,6 +186,7 @@ app.post("/mondial-relay", async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 });
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
