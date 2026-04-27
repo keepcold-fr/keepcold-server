@@ -36,14 +36,17 @@ app.post("/create-checkout", async (req, res) => {
         "Authorization": "Bearer " + process.env.SUMUP_API_KEY,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
+body: JSON.stringify({
   checkout_reference: checkoutReference,
   amount: Number(amount),
   currency: "EUR",
   pay_to_email: process.env.SUMUP_MERCHANT_EMAIL,
   description: "Commande Keep Cold",
-  return_url: "https://keepcold.fr/panier-test.html"
-}) 
+  return_url: "https://keepcold.fr/panier-test.html",
+  hosted_checkout: {
+    enabled: true
+  }
+})
     });
 
     const data = await response.json();
