@@ -47,6 +47,7 @@ app.post("/create-checkout", async (req, res) => {
     });
 
     const data = await response.json();
+    console.log("SUMUP RESPONSE:", data);
 
     if (!response.ok) {
       return res.status(500).json({
@@ -56,10 +57,11 @@ app.post("/create-checkout", async (req, res) => {
     }
 
     return res.json({
-      url: data.hosted_checkout_url,
-      checkout_id: data.id,
-      reference: checkoutReference
-    });
+  url: data.hosted_checkout_url || data.checkout_url,
+  checkout_id: data.id,
+  reference: checkoutReference,
+  full: data
+});
 
   } catch (err) {
     return res.status(500).json({
