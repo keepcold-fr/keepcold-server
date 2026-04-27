@@ -47,6 +47,16 @@ app.post("/create-checkout", async (req, res) => {
     });
 
     const data = await response.json();
+    const checkoutDetails = await fetch(`https://api.sumup.com/v0.1/checkouts/${data.id}`, {
+  method: "GET",
+  headers: {
+    "Authorization": "Bearer " + process.env.SUMUP_API_KEY
+  }
+});
+
+const checkoutData = await checkoutDetails.json();
+
+console.log("CHECKOUT DETAILS:", checkoutData);
     console.log("SUMUP RESPONSE:", data);
 
     if (!response.ok) {
@@ -57,7 +67,7 @@ app.post("/create-checkout", async (req, res) => {
     }
 
   return res.json({
-  url: `https://checkout.sumup.com/b2c/#/checkout/${data.id}`,
+  url: checkoutData.hosted_checkout_url,
   checkout_id: data.id,
   reference: checkoutReference
 });
