@@ -43,7 +43,8 @@ app.post("/create-checkout", async (req, res) => {
   pay_to_email: process.env.SUMUP_MERCHANT_EMAIL,
   description: "Commande Keep Cold",
   return_url: "https://keepcold.fr/panier-test.html"
-})
+}) 
+    });
 
     const data = await response.json();
 
