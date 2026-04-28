@@ -99,10 +99,91 @@ app.post("/confirm-order", async (req, res) => {
       `
     });
 
+    await fetch("https://keepcold-server.onrender.com/create-shipment", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(req.body)
+});
+
     res.json({ success: true });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+app.post("/create-shipment", async (req, res) => {
+  const crypto = require("crypto");
+
+  try {
+    const { nom, addr, cp, ville, email, relais } = req.body;
+
+    const enseigne = process.env.MR_ENSEIGNE;
+    const cle = process.env.MR_PRIVATE_KEY;
+
+    // ⚠️ paramètres Mondial Relay simplifiés
+    const expedition = {
+      Enseigne: enseigne,
+      ModeCol: "REL", // livraison relais
+      ModeLiv: "24R", // relais pickup
+      NDossier: "KC-" + Date.now(),
+      NClient: nom,
+      Expe_Langage: "FR",
+      Expe_Ad1: "Keep Cold",
+      Expe_CP: "13830",
+      Expe_Ville: "Roquefort la Bédoule",
+
+      Dest_Langage: "FR",
+      Dest_Ad1: nom,
+      Dest_Ad3: addr,
+      Dest_CP: cp,
+      Dest_Ville: ville,
+      Dest_Mail: email,
+
+      // relais sélectionné
+      LIV_Rel: relais?.nom || "",
+
+      Poids: "1000"
+    };
+
+    // 🔐 signature sécurité
+    const securityString =
+      Object.values(expedition).join("") + cle;
+
+    const security = crypto
+      .createHash("md5")
+      .update(securityString)
+      .digest("hex")
+      .toUpperCase();
+
+    const xml = `
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <WSI2_CreationExpedition xmlns="http://www.mondialrelay.fr/webservice/">
+      ${Object.entries(expedition).map(([k, v]) => `<${k}>${v}</${k}>`).join("")}
+      <Security>${security}</Security>
+    </WSI2_CreationExpedition>
+  </soap:Body>
+</soap:Envelope>`;
+
+    const response = await fetch("https://api.mondialrelay.com/WebService.asmx", {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/xml; charset=utf-8",
+        "SOAPAction": "http://www.mondialrelay.fr/webservice/WSI2_CreationExpedition"
+      },
+      body: xml
+    });
+
+    const text = await response.text();
+
+    console.log("EXPEDITION MR:", text);
+
+    return res.json({ success: true, raw: text });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 app.post("/mondial-relay", async (req, res) => {
