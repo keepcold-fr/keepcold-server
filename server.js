@@ -347,7 +347,42 @@ app.post("/mondial-relay", async (req, res) => {
 
     const text = await response.text();
     console.log("Réponse MR :", text);
+await resend.emails.send({
+  from: "Keep Cold <contact@keepcold.fr>",
+  to: "contact@keepcold.fr",
+  subject: "📦 Nouvelle commande Keep Cold",
+  html: `
+    <h2>Nouvelle commande reçue</h2>
 
+    <p><strong>Client :</strong> ${nom}</p>
+    <p><strong>Email :</strong> ${email}</p>
+    <p><strong>Téléphone :</strong> ${tel}</p>
+
+    <hr>
+
+    <p><strong>Adresse :</strong><br>
+    ${addr}<br>
+    ${cp} ${ville}</p>
+
+    <hr>
+
+    <p><strong>Point relais :</strong><br>
+    ${relais?.nom || ""}<br>
+    ${relais?.adresse || ""}<br>
+    ${relais?.ville || ""}<br>
+    Code : ${relais?.code || ""}</p>
+
+    <hr>
+
+    <p style="color:#2563eb; font-weight:bold;">
+      👉 Une expédition a été créée sur Mondial Relay.
+    </p>
+
+    <p>
+      Connecte-toi à ton espace pro pour imprimer l’étiquette.
+    </p>
+  `
+});
     return res.json({ success: true, raw: text });
 
   } catch (error) {
