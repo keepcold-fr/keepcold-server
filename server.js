@@ -119,39 +119,121 @@ app.post("/create-shipment", async (req, res) => {
 
   try {
     console.log("CREATE SHIPMENT RECU :", req.body);
-    const { nom, addr, cp, ville, email, relais } = req.body;
+
+    const { nom, addr, cp, ville, email, tel, relais } = req.body;
+
+    if (!nom || !addr || !cp || !ville || !email || !relais || !relais.code) {
+      return res.status(400).json({
+        success: false,
+        error: "Infos client ou relais manquants"
+      });
+    }
 
     const enseigne = process.env.MR_ENSEIGNE;
     const cle = process.env.MR_PRIVATE_KEY;
 
-    // ⚠️ paramètres Mondial Relay simplifiés
-    const expedition = {
+    const params = {
       Enseigne: enseigne,
-      ModeCol: "REL", // livraison relais
-      ModeLiv: "24R", // relais pickup
+      ModeCol: "REL",
+      ModeLiv: "24R",
       NDossier: "KC-" + Date.now(),
       NClient: nom,
+
       Expe_Langage: "FR",
       Expe_Ad1: "Keep Cold",
-      Expe_CP: "13830",
-      Expe_Ville: "Roquefort la Bédoule",
+      Expe_Ad2: "",
+      Expe_Ad3: "36 rue Andre Audoli",
+      Expe_Ad4: "",
+      Expe_Ville: "Marseille",
+      Expe_CP: "13010",
+      Expe_Pays: "FR",
+      Expe_Tel1: "0624947059",
+      Expe_Tel2: "",
+      Expe_Mail: "contact@keepcold.fr",
 
       Dest_Langage: "FR",
       Dest_Ad1: nom,
+      Dest_Ad2: "",
       Dest_Ad3: addr,
-      Dest_CP: cp,
+      Dest_Ad4: "",
       Dest_Ville: ville,
+      Dest_CP: cp,
+      Dest_Pays: "FR",
+      Dest_Tel1: tel || "",
+      Dest_Tel2: "",
       Dest_Mail: email,
 
-      // relais sélectionné
-      LIV_Rel: relais?.nom || "",
+      Poids: "3000",
+      Longueur: "",
+      Taille: "",
+      NbColis: "1",
 
-      Poids: "1000"
+      CRT_Valeur: "0",
+      CRT_Devise: "",
+      Exp_Valeur: "",
+      Exp_Devise: "",
+
+      COL_Rel_Pays: "",
+      COL_Rel: "",
+
+      LIV_Rel_Pays: "FR",
+      LIV_Rel: relais.code,
+
+      TAvisage: "",
+      TReprise: "",
+      Montage: "",
+      TRDV: "",
+      Assurance: "",
+      Instructions: "Commande Keep Cold"
     };
 
-    // 🔐 signature sécurité
     const securityString =
-      Object.values(expedition).join("") + cle;
+      params.Enseigne +
+      params.ModeCol +
+      params.ModeLiv +
+      params.NDossier +
+      params.NClient +
+      params.Expe_Langage +
+      params.Expe_Ad1 +
+      params.Expe_Ad2 +
+      params.Expe_Ad3 +
+      params.Expe_Ad4 +
+      params.Expe_Ville +
+      params.Expe_CP +
+      params.Expe_Pays +
+      params.Expe_Tel1 +
+      params.Expe_Tel2 +
+      params.Expe_Mail +
+      params.Dest_Langage +
+      params.Dest_Ad1 +
+      params.Dest_Ad2 +
+      params.Dest_Ad3 +
+      params.Dest_Ad4 +
+      params.Dest_Ville +
+      params.Dest_CP +
+      params.Dest_Pays +
+      params.Dest_Tel1 +
+      params.Dest_Tel2 +
+      params.Dest_Mail +
+      params.Poids +
+      params.Longueur +
+      params.Taille +
+      params.NbColis +
+      params.CRT_Valeur +
+      params.CRT_Devise +
+      params.Exp_Valeur +
+      params.Exp_Devise +
+      params.COL_Rel_Pays +
+      params.COL_Rel +
+      params.LIV_Rel_Pays +
+      params.LIV_Rel +
+      params.TAvisage +
+      params.TReprise +
+      params.Montage +
+      params.TRDV +
+      params.Assurance +
+      params.Instructions +
+      cle;
 
     const security = crypto
       .createHash("md5")
@@ -163,7 +245,7 @@ app.post("/create-shipment", async (req, res) => {
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <WSI2_CreationExpedition xmlns="http://www.mondialrelay.fr/webservice/">
-      ${Object.entries(expedition).map(([k, v]) => `<${k}>${v}</${k}>`).join("")}
+      ${Object.entries(params).map(([key, value]) => `<${key}>${value}</${key}>`).join("")}
       <Security>${security}</Security>
     </WSI2_CreationExpedition>
   </soap:Body>
@@ -180,12 +262,19 @@ app.post("/create-shipment", async (req, res) => {
 
     const text = await response.text();
 
-    console.log("EXPEDITION MR:", text);
+    console.log("EXPEDITION MR :", text);
 
-    return res.json({ success: true, raw: text });
+    return res.json({
+      success: true,
+      raw: text
+    });
 
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("ERREUR CREATE SHIPMENT :", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 app.post("/mondial-relay", async (req, res) => {
