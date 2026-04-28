@@ -260,10 +260,7 @@ app.post("/create-shipment", async (req, res) => {
       body: xml
     });
 
-    const text = await response.text();
-
-    console.log("EXPEDITION MR :", text);
-
+    
     return res.json({
       success: true,
       raw: text
