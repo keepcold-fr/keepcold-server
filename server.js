@@ -85,6 +85,7 @@ console.log("CHECKOUT DETAILS:", checkoutData);
 
 app.post("/confirm-order", async (req, res) => {
   try {
+    console.log("CONFIRM ORDER RECU :", req.body);
     const { email, nom, montant } = req.body;
 
     await resend.emails.send({
@@ -117,6 +118,7 @@ app.post("/create-shipment", async (req, res) => {
   const crypto = require("crypto");
 
   try {
+    console.log("CREATE SHIPMENT RECU :", req.body);
     const { nom, addr, cp, ville, email, relais } = req.body;
 
     const enseigne = process.env.MR_ENSEIGNE;
