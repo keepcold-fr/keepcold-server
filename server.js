@@ -259,6 +259,18 @@ app.post("/create-shipment", async (req, res) => {
       },
       body: xml
     });
+    
+    let expeditionNumber = "NON TROUVÉ";
+
+try {
+  const match = text.match(/<ExpeditionNum>(.*?)<\/ExpeditionNum>/);
+
+  if (match && match[1]) {
+    expeditionNumber = match[1];
+  }
+} catch (e) {
+  console.log("Erreur extraction tracking");
+}
 
     
     return res.json({
@@ -281,7 +293,7 @@ app.post("/mondial-relay", async (req, res) => {
   try {
     const enseigne = process.env.MR_ENSEIGNE;
     const cle = process.env.MR_PRIVATE_KEY;
-
+    
     const params = {
       Enseigne: enseigne,
       Pays: "FR",
