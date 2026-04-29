@@ -46,7 +46,7 @@ app.post("/create-checkout", async (req, res) => {
         currency: "EUR",
         pay_to_email: process.env.SUMUP_MERCHANT_EMAIL,
         description: "Commande Keep Cold",
-        return_url: "https://keepcold.fr/merci.html",
+        redirect_url: "https://keepcold.fr/merci.html",
         hosted_checkout: {
           enabled: true
         }
