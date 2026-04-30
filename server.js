@@ -489,13 +489,16 @@ app.post("/verify-payment", async (req, res) => {
     }
 
     if (order.paid) {
-      return res.json({
-        success: true,
-        message: "Commande déjà traitée"
-      });
-    }
+  console.log("COMMANDE DEJA TRAITEE :", checkout_id);
+
+  return res.json({
+    success: true,
+    message: "Commande déjà traitée"
+  });
+}
 
     order.paid = true;
+    console.log("ENVOI EMAIL CLIENT :", order.email);
 
     await resend.emails.send({
       from: "Keep Cold <contact@keepcold.fr>",
@@ -508,7 +511,8 @@ app.post("/verify-payment", async (req, res) => {
         <p>Nous préparons ta commande et t’enverrons le suivi très bientôt.</p>
       `
     });
-
+console.log("EMAIL CLIENT OK");
+    
     await resend.emails.send({
       from: "Keep Cold <contact@keepcold.fr>",
       to: "contact@keepcold.fr",
@@ -537,6 +541,7 @@ app.post("/verify-payment", async (req, res) => {
         Code relais : ${order.relais?.code || ""}</p>
       `
     });
+console.log("EMAIL ADMIN OK");
 
     const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
       method: "POST",
