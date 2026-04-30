@@ -500,48 +500,43 @@ app.post("/verify-payment", async (req, res) => {
     order.paid = true;
     console.log("ENVOI EMAIL CLIENT :", order.email);
 
-    await resend.emails.send({
-      from: "Keep Cold <contact@keepcold.fr>",
-      to: order.email,
-      subject: "Commande confirmée ❄️",
-      html: `
-        <h2>Merci ${order.nom} 🙌</h2>
-        <p>Ta commande Keep Cold est bien confirmée et payée.</p>
-        <p><strong>Montant :</strong> ${order.amount} €</p>
-        <p>Nous préparons ta commande et t’enverrons le suivi très bientôt.</p>
-      `
-    });
-console.log("EMAIL CLIENT OK");
+    try {
+  await resend.emails.send({
+    from: "Keep Cold <contact@keepcold.fr>",
+    to: order.email,
+    subject: "Commande confirmée ❄️",
+    html: `
+      <h2>Merci ${order.nom} 🙌</h2>
+      <p>Ta commande Keep Cold est bien confirmée.</p>
+      <p><strong>Montant :</strong> ${order.amount}€</p>
+    `
+  });
+
+  console.log("EMAIL CLIENT OK");
+
+} catch (err) {
+  console.error("ERREUR EMAIL CLIENT :", err);
+}
     
-    await resend.emails.send({
-      from: "Keep Cold <contact@keepcold.fr>",
-      to: "contact@keepcold.fr",
-      subject: "💰 Paiement confirmé Keep Cold",
-      html: `
-        <h2>Paiement confirmé</h2>
-        <p><strong>Référence :</strong> ${order.reference}</p>
-        <p><strong>Montant :</strong> ${order.amount} €</p>
+    try {
+  await resend.emails.send({
+    from: "Keep Cold <contact@keepcold.fr>",
+    to: "contact@keepcold.fr",
+    subject: "💰 Paiement confirmé Keep Cold",
+    html: `
+      <h2>Paiement confirmé</h2>
+      <p><strong>Référence :</strong> ${order.reference}</p>
+      <p><strong>Montant :</strong> ${order.amount}€</p>
+      <p><strong>Client :</strong> ${order.nom}</p>
+      <p><strong>Email :</strong> ${order.email}</p>
+    `
+  });
 
-        <p><strong>Client :</strong> ${order.nom}</p>
-        <p><strong>Email :</strong> ${order.email}</p>
-        <p><strong>Téléphone :</strong> ${order.tel}</p>
+  console.log("EMAIL ADMIN OK");
 
-        <hr>
-
-        <p><strong>Adresse :</strong><br>
-        ${order.addr}<br>
-        ${order.cp} ${order.ville}</p>
-
-        <hr>
-
-        <p><strong>Point relais :</strong><br>
-        ${order.relais?.nom || ""}<br>
-        ${order.relais?.adresse || ""}<br>
-        ${order.relais?.ville || ""}<br>
-        Code relais : ${order.relais?.code || ""}</p>
-      `
-    });
-console.log("EMAIL ADMIN OK");
+} catch (err) {
+  console.error("ERREUR EMAIL ADMIN :", err);
+}
 
     const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
       method: "POST",
