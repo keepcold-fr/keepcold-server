@@ -1,5 +1,6 @@
 const express = require("express");
 const { Resend } = require("resend");
+const orders = {};
 const crypto = require("crypto");
 
 const app = express();
@@ -72,7 +73,21 @@ app.post("/create-checkout", async (req, res) => {
 
     const checkoutData = await checkoutDetails.json();
     console.log("CHECKOUT DETAILS:", checkoutData);
+orders[data.id] = {
+  checkout_id: data.id,
+  reference: checkoutReference,
+  amount,
+  email,
+  nom,
+  tel,
+  addr,
+  cp,
+  ville,
+  relais,
+  paid: false
+};
 
+console.log("COMMANDE STOCKÉE :", orders[data.id]);
     return res.json({
       url: checkoutData.hosted_checkout_url,
       checkout_id: data.id,
@@ -434,7 +449,121 @@ app.post("/mondial-relay", async (req, res) => {
     });
   }
 });
+app.post("/verify-payment", async (req, res) => {
+  try {
+    const { checkout_id } = req.body;
 
+    if (!checkout_id) {
+      return res.status(400).json({
+        success: false,
+        error: "checkout_id manquant"
+      });
+    }
+
+    const order = orders[checkout_id];
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: "Commande introuvable sur le serveur"
+      });
+    }
+
+    const response = await fetch(`https://api.sumup.com/v0.1/checkouts/${checkout_id}`, {
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + process.env.SUMUP_API_KEY
+      }
+    });
+
+    const payment = await response.json();
+
+    console.log("VERIF SUMUP :", payment);
+
+    if (payment.status !== "PAID") {
+      return res.json({
+        success: false,
+        status: payment.status,
+        message: "Paiement non confirmé"
+      });
+    }
+
+    if (order.paid) {
+      return res.json({
+        success: true,
+        message: "Commande déjà traitée"
+      });
+    }
+
+    order.paid = true;
+
+    await resend.emails.send({
+      from: "Keep Cold <contact@keepcold.fr>",
+      to: order.email,
+      subject: "Commande confirmée ❄️",
+      html: `
+        <h2>Merci ${order.nom} 🙌</h2>
+        <p>Ta commande Keep Cold est bien confirmée et payée.</p>
+        <p><strong>Montant :</strong> ${order.amount} €</p>
+        <p>Nous préparons ta commande et t’enverrons le suivi très bientôt.</p>
+      `
+    });
+
+    await resend.emails.send({
+      from: "Keep Cold <contact@keepcold.fr>",
+      to: "contact@keepcold.fr",
+      subject: "💰 Paiement confirmé Keep Cold",
+      html: `
+        <h2>Paiement confirmé</h2>
+        <p><strong>Référence :</strong> ${order.reference}</p>
+        <p><strong>Montant :</strong> ${order.amount} €</p>
+
+        <p><strong>Client :</strong> ${order.nom}</p>
+        <p><strong>Email :</strong> ${order.email}</p>
+        <p><strong>Téléphone :</strong> ${order.tel}</p>
+
+        <hr>
+
+        <p><strong>Adresse :</strong><br>
+        ${order.addr}<br>
+        ${order.cp} ${order.ville}</p>
+
+        <hr>
+
+        <p><strong>Point relais :</strong><br>
+        ${order.relais?.nom || ""}<br>
+        ${order.relais?.adresse || ""}<br>
+        ${order.relais?.ville || ""}<br>
+        Code relais : ${order.relais?.code || ""}</p>
+      `
+    });
+
+    const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(order)
+    });
+
+    const shipmentData = await shipmentResponse.json();
+
+    console.log("EXPEDITION APRES PAIEMENT :", shipmentData);
+
+    return res.json({
+      success: true,
+      payment,
+      shipment: shipmentData
+    });
+
+  } catch (err) {
+    console.error("ERREUR VERIFY PAYMENT :", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
