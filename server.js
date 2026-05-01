@@ -677,56 +677,272 @@ app.get("/admin/orders", async (req, res) => {
     });
   }
 });
-app.get('/admin', async (req, res) => {
+app.get("/admin", async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM commandes ORDER BY id DESC');
+    const result = await pool.query(`
+      SELECT 
+        id,
+        reference,
+        checkout_id,
+        amount,
+        email,
+        nom,
+        tel,
+        addr,
+        cp,
+        ville,
+        relais,
+        paid,
+        payment_status,
+        expedition_number,
+        created_at
+      FROM orders
+      ORDER BY created_at DESC
+    `);
 
-    let html = `
-    <html>
-    <head>
-      <title>Admin Keep Cold</title>
-      <style>
-        body { font-family: Arial; padding: 20px; }
-        h1 { color: #00bcd4; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background: #00bcd4; color: white; }
-      </style>
-    </head>
-    <body>
-      <h1>Commandes Keep Cold</h1>
-      <table>
-        <tr>
-          <th>ID</th>
-          <th>Nom</th>
-          <th>Email</th>
-          <th>Total</th>
-          <th>Date</th>
-        </tr>
-    `;
+    const orders = result.rows;
 
-    result.rows.forEach(cmd => {
-      html += `
+    const totalCA = orders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+    const totalPaid = orders.filter(o => o.paid).length;
+    const totalPending = orders.filter(o => !o.paid).length;
+
+    let rows = orders.map(o => {
+      const relais = o.relais || {};
+      const date = o.created_at ? new Date(o.created_at).toLocaleString("fr-FR") : "-";
+
+      return `
         <tr>
-          <td>${cmd.id}</td>
-          <td>${cmd.nom || ''}</td>
-          <td>${cmd.email || ''}</td>
-          <td>${cmd.total || ''}</td>
-          <td>${cmd.created_at || ''}</td>
+          <td><strong>#${o.id}</strong><br><small>${o.reference || "-"}</small></td>
+          <td>${date}</td>
+          <td>
+            <strong>${o.nom || "-"}</strong><br>
+            <small>${o.email || "-"}</small><br>
+            <small>${o.tel || "-"}</small>
+          </td>
+          <td>
+            ${o.addr || "-"}<br>
+            <small>${o.cp || ""} ${o.ville || ""}</small>
+          </td>
+          <td>
+            <strong>${relais.nom || "-"}</strong><br>
+            <small>${relais.adresse || ""}</small><br>
+            <small>${relais.code || ""}</small>
+          </td>
+          <td><strong>${o.amount || "0"} €</strong></td>
+          <td>
+            <span class="${o.paid ? "badge paid" : "badge pending"}">
+              ${o.paid ? "Payé" : (o.payment_status || "En attente")}
+            </span>
+          </td>
+          <td>${o.expedition_number || "-"}</td>
         </tr>
       `;
-    });
+    }).join("");
 
-    html += `
+    if (!rows) {
+      rows = `<tr><td colspan="8" class="empty">Aucune commande pour le moment.</td></tr>`;
+    }
+
+    res.send(`
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Keep Cold</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #eef8ff;
+      color: #102033;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0077b6, #00b4d8);
+      color: white;
+      padding: 24px;
+      border-bottom-left-radius: 24px;
+      border-bottom-right-radius: 24px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      opacity: 0.9;
+    }
+
+    .container {
+      padding: 18px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: white;
+      padding: 16px;
+      border-radius: 18px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+
+    .card small {
+      color: #607080;
+    }
+
+    .card strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 22px;
+    }
+
+    .table-box {
+      background: white;
+      border-radius: 18px;
+      overflow-x: auto;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1100px;
+    }
+
+    th {
+      background: #023047;
+      color: white;
+      text-align: left;
+      padding: 14px;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 14px;
+      border-bottom: 1px solid #e5e5e5;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    tr:hover {
+      background: #f5fbff;
+    }
+
+    small {
+      color: #64748b;
+    }
+
+    .badge {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: bold;
+      font-size: 12px;
+      display: inline-block;
+    }
+
+    .paid {
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    .pending {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 30px;
+      color: #64748b;
+    }
+
+    .refresh {
+      display: inline-block;
+      margin: 14px 0;
+      background: #0077b6;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    @media (max-width: 700px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      header h1 {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Admin Keep Cold ❄️</h1>
+    <p>Tableau de bord des commandes</p>
+  </header>
+
+  <div class="container">
+
+    <div class="stats">
+      <div class="card">
+        <small>Total commandes</small>
+        <strong>${orders.length}</strong>
+      </div>
+
+      <div class="card">
+        <small>Commandes payées</small>
+        <strong>${totalPaid}</strong>
+      </div>
+
+      <div class="card">
+        <small>CA total</small>
+        <strong>${totalCA.toFixed(2)} €</strong>
+      </div>
+    </div>
+
+    <a class="refresh" href="/admin">Actualiser</a>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>ID / Référence</th>
+            <th>Date</th>
+            <th>Client</th>
+            <th>Adresse</th>
+            <th>Point relais</th>
+            <th>Montant</th>
+            <th>Paiement</th>
+            <th>Suivi MR</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
       </table>
-    </body>
-    </html>
-    `;
+    </div>
 
-    res.send(html);
+  </div>
+
+</body>
+</html>
+    `);
 
   } catch (err) {
-    res.send("Erreur admin: " + err.message);
+    console.error("ERREUR ADMIN :", err);
+    res.send("Erreur admin : " + err.message);
   }
 });
 
