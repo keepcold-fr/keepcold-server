@@ -593,6 +593,35 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
+app.get("/init-db", async (req, res) => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        checkout_id TEXT UNIQUE,
+        reference TEXT,
+        amount NUMERIC,
+        email TEXT,
+        nom TEXT,
+        tel TEXT,
+        addr TEXT,
+        cp TEXT,
+        ville TEXT,
+        relais JSONB,
+        paid BOOLEAN DEFAULT false,
+        payment_status TEXT DEFAULT 'PENDING',
+        expedition_number TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    res.json({ success: true, message: "Table orders créée" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
