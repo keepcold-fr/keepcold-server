@@ -677,6 +677,58 @@ app.get("/admin/orders", async (req, res) => {
     });
   }
 });
+app.get('/admin', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM commandes ORDER BY id DESC');
+
+    let html = `
+    <html>
+    <head>
+      <title>Admin Keep Cold</title>
+      <style>
+        body { font-family: Arial; padding: 20px; }
+        h1 { color: #00bcd4; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background: #00bcd4; color: white; }
+      </style>
+    </head>
+    <body>
+      <h1>Commandes Keep Cold</h1>
+      <table>
+        <tr>
+          <th>ID</th>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Total</th>
+          <th>Date</th>
+        </tr>
+    `;
+
+    result.rows.forEach(cmd => {
+      html += `
+        <tr>
+          <td>${cmd.id}</td>
+          <td>${cmd.nom || ''}</td>
+          <td>${cmd.email || ''}</td>
+          <td>${cmd.total || ''}</td>
+          <td>${cmd.created_at || ''}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+      </table>
+    </body>
+    </html>
+    `;
+
+    res.send(html);
+
+  } catch (err) {
+    res.send("Erreur admin: " + err.message);
+  }
+});
 
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
