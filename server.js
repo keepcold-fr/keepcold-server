@@ -144,12 +144,110 @@ app.post("/confirm-order", async (req, res) => {
       to: email,
       subject: "Commande confirmée ❄️",
       html: `
-        <h2>Merci ${nom} 🙌</h2>
-        <p>Ta commande Keep Cold est bien confirmée.</p>
-        <p><strong>Montant :</strong> ${montant} €</p>
-        <p>Nous préparons ta commande et t’enverrons le suivi très bientôt.</p>
-      `
-    });
+<div style="margin:0;padding:0;background:#eef8ff;font-family:Arial,Helvetica,sans-serif;color:#102033;">
+  <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
+
+    <div style="background:white;border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.10);">
+
+      <div style="background:linear-gradient(135deg,#0077b6,#00c2ff);padding:28px 24px;text-align:center;color:white;">
+        <div style="font-size:30px;font-weight:800;letter-spacing:0.5px;">KEEP COLD</div>
+        <div style="font-size:15px;margin-top:6px;opacity:0.95;">Commande confirmée</div>
+      </div>
+
+      <div style="padding:26px 24px;">
+
+        <h2 style="margin:0 0 10px;font-size:22px;color:#102033;">
+          Merci ${order.nom || ""} !
+        </h2>
+
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#475569;">
+          Nous avons bien reçu ta commande Keep Cold. Voici ton récapitulatif.
+        </p>
+
+        <div style="background:#f1faff;border:1px solid #d8f1ff;border-radius:16px;padding:16px;margin-bottom:20px;">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <tr>
+              <td style="padding:6px 0;color:#64748b;">Référence</td>
+              <td style="padding:6px 0;text-align:right;font-weight:700;">${order.reference || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#64748b;">Date</td>
+              <td style="padding:6px 0;text-align:right;font-weight:700;">${new Date().toLocaleString("fr-FR")}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;color:#64748b;">Statut</td>
+              <td style="padding:6px 0;text-align:right;">
+                <span style="background:#d1fae5;color:#047857;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;">
+                  Paiement confirmé
+                </span>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <h3 style="margin:0 0 12px;font-size:17px;">Reçu / récapitulatif</h3>
+
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;font-size:14px;">
+          <thead>
+            <tr style="background:#023047;color:white;">
+              <th style="padding:12px;text-align:left;">Produit</th>
+              <th style="padding:12px;text-align:center;">Qté</th>
+              <th style="padding:12px;text-align:right;">Montant</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:14px;border-bottom:1px solid #e2e8f0;">
+                Commande Keep Cold
+              </td>
+              <td style="padding:14px;text-align:center;border-bottom:1px solid #e2e8f0;">
+                1
+              </td>
+              <td style="padding:14px;text-align:right;border-bottom:1px solid #e2e8f0;font-weight:700;">
+                ${order.amount || montant || "0"} €
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="text-align:right;margin:18px 0 24px;">
+          <div style="font-size:14px;color:#64748b;">Total payé</div>
+          <div style="font-size:28px;font-weight:800;color:#0077b6;">
+            ${order.amount || montant || "0"} €
+          </div>
+        </div>
+
+        <div style="display:block;background:#f8fafc;border-radius:16px;padding:16px;margin-bottom:18px;">
+          <h3 style="margin:0 0 10px;font-size:16px;">Livraison</h3>
+          <p style="margin:0;font-size:14px;line-height:1.6;color:#475569;">
+            <strong>${order.nom || nom || ""}</strong><br>
+            ${order.addr || ""}<br>
+            ${order.cp || ""} ${order.ville || ""}
+          </p>
+        </div>
+
+        <p style="margin:18px 0 0;font-size:14px;line-height:1.6;color:#475569;">
+          Nous préparons ta commande. Tu recevras un nouvel email dès que ton colis sera expédié avec le numéro de suivi.
+        </p>
+
+        <div style="margin-top:24px;text-align:center;">
+          <a href="https://keepcold.fr" style="display:inline-block;background:#0077b6;color:white;text-decoration:none;padding:13px 18px;border-radius:14px;font-weight:700;">
+            Retourner sur keepcold.fr
+          </a>
+        </div>
+
+      </div>
+
+      <div style="background:#102033;color:white;text-align:center;padding:18px;font-size:12px;line-height:1.6;">
+        <strong>Keep Cold</strong><br>
+        Marseille — contact@keepcold.fr<br>
+        Merci pour ta confiance.
+      </div>
+
+    </div>
+  </div>
+</div>
+`
 
     const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
       method: "POST",
