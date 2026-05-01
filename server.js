@@ -93,6 +93,28 @@ orders[data.id] = {
   relais,
   paid: false
 };
+    await pool.query(
+  `INSERT INTO orders 
+   (checkout_id, reference, amount, email, nom, tel, addr, cp, ville, relais, paid, payment_status)
+   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+   ON CONFLICT (checkout_id) DO NOTHING`,
+  [
+    data.id,
+    checkoutReference,
+    Number(amount),
+    email,
+    nom,
+    tel,
+    addr,
+    cp,
+    ville,
+    JSON.stringify(relais),
+    false,
+    "PENDING"
+  ]
+);
+
+console.log("COMMANDE ENREGISTRÉE EN DB :", checkoutReference);
 
 console.log("COMMANDE STOCKÉE :", orders[data.id]);
     return res.json({
