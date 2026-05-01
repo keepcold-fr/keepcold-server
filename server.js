@@ -249,27 +249,6 @@ app.post("/confirm-order", async (req, res) => {
 </div>
 `
 
-    const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(req.body)
-    });
-
-    const shipmentData = await shipmentResponse.json();
-    console.log("SHIPMENT DATA :", shipmentData);
-
-    return res.json({
-      success: true,
-      shipment: shipmentData
-    });
-
-  } catch (err) {
-    console.error("ERREUR CONFIRM ORDER :", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
 
 /* =========================
    CREATION EXPEDITION MR
