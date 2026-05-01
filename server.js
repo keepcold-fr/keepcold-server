@@ -574,16 +574,21 @@ app.post("/verify-payment", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.get("/test-db", async (req, res) => {
   try {
+    console.log("DATABASE_URL existe ?", !!process.env.DATABASE_URL);
+
     const result = await pool.query("SELECT NOW()");
+
     res.json({
       success: true,
       time: result.rows[0]
     });
   } catch (err) {
-    console.error("DB ERROR:", err);
+    console.error("DB ERROR FULL:", err);
+
     res.status(500).json({
       success: false,
-      error: err.message
+      error: err.message || String(err),
+      code: err.code || null
     });
   }
 });
