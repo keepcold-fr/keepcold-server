@@ -960,7 +960,21 @@ function exportCSV(){
 </script>
 </body>
 </html>
-    `);
+    });
+
+    return res.json({ success: true });
+
+} catch (err) {
+  console.error("ERREUR CONFIRM ORDER :", err);
+  return res.status(500).json({ error: err.message });
+}
+});
+
+} catch (err) {
+  console.error("ERREUR CONFIRM ORDER :", err);
+  return res.status(500).json({ error: err.message });
+}
+});
   } catch (err) {
     console.error("ERREUR ADMIN :", err);
     res.send("Erreur admin : " + err.message);
