@@ -572,6 +572,21 @@ app.post("/verify-payment", async (req, res) => {
   }
 });
 const PORT = process.env.PORT || 3000;
+app.get("/test-db", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json({
+      success: true,
+      time: result.rows[0]
+    });
+  } catch (err) {
+    console.error("DB ERROR:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
