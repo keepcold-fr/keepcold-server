@@ -644,6 +644,40 @@ app.get("/init-db", async (req, res) => {
   }
 });
 
+app.get("/admin/orders", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id,
+        reference,
+        checkout_id,
+        amount,
+        email,
+        nom,
+        tel,
+        cp,
+        ville,
+        paid,
+        payment_status,
+        expedition_number,
+        created_at
+      FROM orders
+      ORDER BY created_at DESC
+    `);
+
+    res.json({
+      success: true,
+      orders: result.rows
+    });
+  } catch (err) {
+    console.error("ERREUR ADMIN ORDERS :", err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
