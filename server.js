@@ -678,351 +678,218 @@ app.get("/admin/orders", async (req, res) => {
   }
 });
 
-app.get("/admin", async (req, res) => {
-  if (req.query.key !== process.env.ADMIN_KEY) {
-    return res.send("⛔ Accès refusé");
-  }
+app.get("/admin", async (req, res) => { if (req.query.key !== process.env.ADMIN_KEY) { return res.send("⛔ Accès refusé"); }
 
-  try {
-    const result = await pool.query(`
-      SELECT *
-      FROM orders
-      ORDER BY created_at DESC
-    `);
+try { const key = req.query.key; const search = (req.query.search || "").trim().toLowerCase(); const status = req.query.status || "all";
 
-    const orders = result.rows;
-    const totalCA = orders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
-    const totalPaid = orders.filter(o => o.paid).length;
-    const totalPending = orders.filter(o => !o.paid).length;
+const result = await pool.query(`
+  SELECT *
+  FROM orders
+  ORDER BY created_at DESC
+`);
 
-    let rows = orders.map(o => {
-      const relais = o.relais || {};
-      const date = o.created_at ? new Date(o.created_at).toLocaleString("fr-FR") : "-";
+let orders = result.rows;
+const allOrders = result.rows;
 
-      return `
-        <tr>
-          <td>
-            <strong>#${o.id}</strong><br>
-            <small>${o.reference || "-"}</small>
-          </td>
-          <td>${date}</td>
-          <td>
-            <strong>${o.nom || "-"}</strong><br>
-            <small>${o.email || "-"}</small><br>
-            <small>${o.tel || "-"}</small>
-          </td>
-          <td>
-            ${o.addr || "-"}<br>
-            <small>${o.cp || ""} ${o.ville || ""}</small>
-          </td>
-          <td>
-            <strong>${relais.nom || "-"}</strong><br>
-            <small>${relais.adresse || ""}</small><br>
-            <small>${relais.code || ""}</small>
-          </td>
-          <td><strong>${o.amount || "0"} €</strong></td>
-          <td>
-            <span class="badge ${o.paid ? "paid" : "pending"}">
-              ${o.paid ? "PAYÉ" : (o.payment_status || "PENDING")}
-            </span>
-          </td>
-          <td>${o.expedition_number || "-"}</td>
-          <td class="actions">
-            <button onclick="markPaid(${o.id})">✅ Payé</button>
-            <button onclick="addTracking(${o.id})">📦 Suivi</button>
-          </td>
-        </tr>
-      `;
-    }).join("");
+orders = orders.filter(o => {
+  const isPaid = o.paid || o.payment_status === "PAID";
+  const isShipped = !!o.expedition_number;
 
-    if (!rows) {
-      rows = `<tr><td colspan="9" class="empty">Aucune commande pour le moment.</td></tr>`;
-    }
+  if (status === "paid" && !isPaid) return false;
+  if (status === "pending" && isPaid) return false;
+  if (status === "shipped" && !isShipped) return false;
 
-    res.send(`
-<!DOCTYPE html>
-<html lang="fr">
+  if (!search) return true;
+
+  const fullText = `
+    ${o.reference || ""}
+    ${o.nom || ""}
+    ${o.email || ""}
+    ${o.tel || ""}
+    ${o.addr || ""}
+    ${o.cp || ""}
+    ${o.ville || ""}
+    ${o.expedition_number || ""}
+  `.toLowerCase();
+
+  return fullText.includes(search);
+});
+
+const totalCA = allOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+const totalPaid = allOrders.filter(o => o.paid || o.payment_status === "PAID").length;
+const totalPending = allOrders.filter(o => !(o.paid || o.payment_status === "PAID")).length;
+const totalShipped = allOrders.filter(o => !!o.expedition_number).length;
+
+let rows = orders.map(o => {
+  const relais = o.relais || {};
+  const isPaid = o.paid || o.payment_status === "PAID";
+  const isShipped = !!o.expedition_number;
+  const date = o.created_at ? new Date(o.created_at).toLocaleString("fr-FR") : "-";
+
+  const relaisNom = relais.nom || relais.name || relais.Nom || relais.libelle || "-";
+  const relaisAdresse = relais.adresse || relais.address || relais.Adresse || relais.adresse1 || "";
+  const relaisVille = relais.ville || relais.city || relais.Ville || "";
+  const relaisCode = relais.code || relais.id || relais.ID || relais.num || "";
+
+  const trackingLink = o.expedition_number
+    ? `<a href="https://www.mondialrelay.fr/suivi-de-colis/?numero=${encodeURIComponent(o.expedition_number)}" target="_blank">${o.expedition_number}</a>`
+    : "-";
+
+  return `
+    <tr>
+      <td>
+        <strong>#${o.id}</strong><br>
+        <small>${o.reference || "-"}</small>
+      </td>
+      <td>${date}</td>
+      <td>
+        <strong>${o.nom || "-"}</strong><br>
+        <small>${o.email || "-"}</small><br>
+        <small>${o.tel || "-"}</small>
+      </td>
+      <td>
+        ${o.addr || "-"}<br>
+        <small>${o.cp || ""} ${o.ville || ""}</small>
+      </td>
+      <td>
+        <strong>${relaisNom}</strong><br>
+        <small>${relaisAdresse}</small><br>
+        <small>${relaisVille}</small><br>
+        <small>${relaisCode}</small>
+      </td>
+      <td><strong>${o.amount || "0"} €</strong></td>
+      <td>
+        <span class="badge ${isPaid ? "paid" : "pending"}">
+          ${isPaid ? "PAYÉ" : "EN ATTENTE"}
+        </span>
+      </td>
+      <td>
+        <span class="badge ${isShipped ? "shipped" : "pending"}">
+          ${isShipped ? "EXPÉDIÉ" : "NON EXPÉDIÉ"}
+        </span><br>
+        <small>${trackingLink}</small>
+      </td>
+      <td class="actions">
+        ${!isPaid ? `<button onclick="markPaid(${o.id})">✅ Marquer payé</button>` : `<button disabled>✅ Payé</button>`}
+        <button onclick="addTracking(${o.id})">📦 Ajouter suivi</button>
+      </td>
+    </tr>
+  `;
+}).join("");
+
+if (!rows) {
+  rows = `<tr><td colspan="9" class="empty">Aucune commande trouvée.</td></tr>`;
+}
+
+res.send(`
+
+<!DOCTYPE html><html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Keep Cold</title>
-
 <style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(180deg, #e8f8ff, #f7fdff);
-    color: #102033;
-  }
-
-  header {
-    background: linear-gradient(135deg, #0077b6, #00c2ff);
-    color: white;
-    padding: 28px 20px 34px;
-    border-bottom-left-radius: 28px;
-    border-bottom-right-radius: 28px;
-    box-shadow: 0 8px 22px rgba(0,119,182,0.25);
-  }
-
-  header h1 {
-    margin: 0;
-    font-size: 30px;
-  }
-
-  header p {
-    margin: 8px 0 0;
-    opacity: 0.95;
-    font-size: 16px;
-  }
-
-  .container {
-    padding: 18px;
-  }
-
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-top: -8px;
-    margin-bottom: 18px;
-  }
-
-  .card {
-    background: white;
-    padding: 18px;
-    border-radius: 20px;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
-  }
-
-  .card small {
-    color: #64748b;
-    font-size: 14px;
-  }
-
-  .card strong {
-    display: block;
-    margin-top: 8px;
-    font-size: 28px;
-  }
-
-  .toolbar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-
-  .btn {
-    background: #0077b6;
-    color: white;
-    padding: 11px 15px;
-    border-radius: 14px;
-    border: none;
-    text-decoration: none;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 5px 14px rgba(0,119,182,0.22);
-  }
-
-  .btn.secondary {
-    background: #023047;
-  }
-
-  .table-box {
-    background: white;
-    border-radius: 22px;
-    overflow-x: auto;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
-  }
-
-  table {
-    width: 100%;
-    min-width: 1150px;
-    border-collapse: collapse;
-  }
-
-  th {
-    background: #023047;
-    color: white;
-    text-align: left;
-    padding: 15px;
-    font-size: 13px;
-    white-space: nowrap;
-  }
-
-  td {
-    padding: 14px;
-    border-bottom: 1px solid #e5eef5;
-    vertical-align: top;
-    font-size: 14px;
-  }
-
-  tr:hover {
-    background: #f3fbff;
-  }
-
-  small {
-    color: #64748b;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 7px 11px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: bold;
-  }
-
-  .paid {
-    background: #d1fae5;
-    color: #047857;
-  }
-
-  .pending {
-    background: #fff7ed;
-    color: #c2410c;
-  }
-
-  .actions {
-    display: flex;
-    gap: 6px;
-    flex-direction: column;
-  }
-
-  .actions button {
-    border: none;
-    border-radius: 10px;
-    padding: 8px 10px;
-    cursor: pointer;
-    font-weight: bold;
-    background: #e0f2fe;
-    color: #075985;
-  }
-
-  .actions button:hover {
-    opacity: 0.8;
-  }
-
-  .empty {
-    text-align: center;
-    padding: 32px;
-    color: #64748b;
-  }
-
-  @media (max-width: 700px) {
-    header h1 {
-      font-size: 24px;
-    }
-
-    .stats {
-      grid-template-columns: 1fr;
-    }
-
-    .container {
-      padding: 14px;
-    }
-  }
+  body { margin:0; font-family:Arial,sans-serif; background:linear-gradient(180deg,#e8f8ff,#f7fdff); color:#102033; }
+  header { background:linear-gradient(135deg,#0077b6,#00c2ff); color:white; padding:28px 20px 34px; border-bottom-left-radius:28px; border-bottom-right-radius:28px; box-shadow:0 8px 22px rgba(0,119,182,.25); }
+  header h1 { margin:0; font-size:30px; }
+  header p { margin:8px 0 0; opacity:.95; font-size:16px; }
+  .container { padding:18px; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+  .card { background:white; padding:18px; border-radius:20px; box-shadow:0 8px 22px rgba(0,0,0,.08); }
+  .card small { color:#64748b; font-size:14px; }
+  .card strong { display:block; margin-top:8px; font-size:26px; }
+  .toolbar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .toolbar input,.toolbar select { padding:11px 12px; border-radius:12px; border:1px solid #cbd5e1; font-size:14px; }
+  .btn { background:#0077b6; color:white; padding:11px 15px; border-radius:14px; border:none; text-decoration:none; font-weight:bold; cursor:pointer; box-shadow:0 5px 14px rgba(0,119,182,.22); }
+  .btn.secondary { background:#023047; }
+  .table-box { background:white; border-radius:22px; overflow-x:auto; box-shadow:0 8px 22px rgba(0,0,0,.08); }
+  table { width:100%; min-width:1250px; border-collapse:collapse; }
+  th { background:#023047; color:white; text-align:left; padding:15px; font-size:13px; white-space:nowrap; }
+  td { padding:14px; border-bottom:1px solid #e5eef5; vertical-align:top; font-size:14px; }
+  tr:hover { background:#f3fbff; }
+  small { color:#64748b; }
+  .badge { display:inline-block; padding:7px 11px; border-radius:999px; font-size:12px; font-weight:bold; }
+  .paid { background:#d1fae5; color:#047857; }
+  .pending { background:#fff7ed; color:#c2410c; }
+  .shipped { background:#dbeafe; color:#1d4ed8; }
+  .actions { display:flex; gap:6px; flex-direction:column; }
+  .actions button { border:none; border-radius:10px; padding:8px 10px; cursor:pointer; font-weight:bold; background:#e0f2fe; color:#075985; }
+  .actions button:disabled { opacity:.6; cursor:not-allowed; }
+  .empty { text-align:center; padding:32px; color:#64748b; }
+  @media(max-width:700px){ header h1{font-size:24px;} .stats{grid-template-columns:1fr;} .container{padding:14px;} }
 </style>
 </head>
-
 <body>
-
 <header>
   <h1>Admin Keep Cold ❄️</h1>
-  <p>Tableau de bord des commandes</p>
+  <p>Commandes, paiements, points relais et suivis colis</p>
 </header>
-
 <div class="container">
-
   <div class="stats">
-    <div class="card">
-      <small>Total commandes</small>
-      <strong>${orders.length}</strong>
-    </div>
-
-    <div class="card">
-      <small>Commandes payées</small>
-      <strong>${totalPaid}</strong>
-    </div>
-
-    <div class="card">
-      <small>CA total</small>
-      <strong>${totalCA.toFixed(2)} €</strong>
-    </div>
+    <div class="card"><small>Total commandes</small><strong>${allOrders.length}</strong></div>
+    <div class="card"><small>Payées</small><strong>${totalPaid}</strong></div>
+    <div class="card"><small>En attente</small><strong>${totalPending}</strong></div>
+    <div class="card"><small>CA total</small><strong>${totalCA.toFixed(2)} €</strong></div>
   </div>
-
-  <div class="toolbar">
-    <a class="btn" href="/admin?key=${req.query.key}">🔄 Actualiser</a>
-    <button class="btn secondary" onclick="exportCSV()">📊 Export CSV</button>
-  </div>
-
+  <form class="toolbar" method="GET" action="/admin">
+    <input type="hidden" name="key" value="${key}">
+    <input type="text" name="search" placeholder="Rechercher client, ville, email..." value="${search}">
+    <select name="status">
+      <option value="all" ${status === "all" ? "selected" : ""}>Toutes</option>
+      <option value="paid" ${status === "paid" ? "selected" : ""}>Payées</option>
+      <option value="pending" ${status === "pending" ? "selected" : ""}>En attente</option>
+      <option value="shipped" ${status === "shipped" ? "selected" : ""}>Expédiées</option>
+    </select>
+    <button class="btn" type="submit">🔍 Filtrer</button>
+    <a class="btn" href="/admin?key=${key}">🔄 Reset</a>
+    <button class="btn secondary" type="button" onclick="exportCSV()">📊 Export CSV</button>
+  </form>
   <div class="table-box">
     <table>
       <thead>
         <tr>
-          <th>ID / Référence</th>
-          <th>Date</th>
-          <th>Client</th>
-          <th>Adresse</th>
-          <th>Point relais</th>
-          <th>Montant</th>
-          <th>Paiement</th>
-          <th>Suivi MR</th>
-          <th>Actions</th>
+          <th>ID / Référence</th><th>Date</th><th>Client</th><th>Adresse</th><th>Point relais / Locker</th><th>Montant</th><th>Paiement</th><th>Expédition</th><th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-        ${rows}
-      </tbody>
+      <tbody>${rows}</tbody>
     </table>
   </div>
-
 </div>
-
 <script>
-async function markPaid(id) {
-  await fetch('/admin/pay/' + id, { method: 'POST' });
+async function markPaid(id){
+  if(!confirm("Marquer cette commande comme payée ?")) return;
+  await fetch('/admin/pay/' + id, { method:'POST' });
   location.reload();
 }
-
-async function addTracking(id) {
+async function addTracking(id){
   const tracking = prompt("Numéro de suivi Mondial Relay");
-  if (!tracking) return;
-
-  await fetch('/admin/track/' + id, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tracking })
-  });
-
+  if(!tracking) return;
+  await fetch('/admin/track/' + id, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ tracking }) });
   location.reload();
 }
-
-function exportCSV() {
+function exportCSV(){
   let csv = [];
   document.querySelectorAll("table tr").forEach(row => {
     let cols = row.querySelectorAll("td, th");
-    let data = [...cols].map(c => '"' + c.innerText.replace(/"/g, '""') + '"');
+    let data = [...cols].map(c => '"' + c.innerText.replace(/"/g, '""').replace(/\n/g, " ") + '"');
     csv.push(data.join(";"));
   });
-
-  let blob = new Blob(["\\ufeff" + csv.join("\\n")], { type: "text/csv;charset=utf-8;" });
+  let blob = new Blob(["\ufeff" + csv.join("\n")], { type:"text/csv;charset=utf-8;" });
   let a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "commandes-keepcold.csv";
   a.click();
 }
 </script>
-
 </body>
 </html>
     `);
-
   } catch (err) {
     console.error("ERREUR ADMIN :", err);
     res.send("Erreur admin : " + err.message);
   }
-});
-app.listen(PORT, () => {
+});app.post("/admin/pay/:id", async (req, res) => { try { await pool.query( "UPDATE orders SET paid=true, payment_status='PAID', updated_at=NOW() WHERE id=$1", [req.params.id] ); res.json({ success: true }); } catch (err) { console.error("ERREUR ADMIN PAY :", err); res.status(500).json({ success: false, error: err.message }); } });
+
+app.post("/admin/track/:id", async (req, res) => { try { const { tracking } = req.body; await pool.query( "UPDATE orders SET expedition_number=$1, updated_at=NOW() WHERE id=$2", [tracking, req.params.id] ); res.json({ success: true }); } catch (err) { console.error("ERREUR ADMIN TRACK :", err); res.status(500).json({ success: false, error: err.message }); } });app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
