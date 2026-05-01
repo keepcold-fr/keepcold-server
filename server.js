@@ -680,7 +680,7 @@ app.get("/admin/orders", async (req, res) => {
 
 app.get("/admin", async (req, res) => {
   if (req.query.key !== process.env.ADMIN_KEY) {
-    return res.send("Accès refusé");
+    return res.send("⛔ Accès refusé");
   }
 
   try {
@@ -690,26 +690,53 @@ app.get("/admin", async (req, res) => {
       ORDER BY created_at DESC
     `);
 
-    let rows = result.rows.map(o => `
-      <tr>
-        <td>${o.id}</td>
-        <td>${o.reference || "-"}</td>
-        <td>${new Date(o.created_at).toLocaleString()}</td>
-        <td>${o.nom || "-"}</td>
-        <td>${o.addr || ""} ${o.cp || ""} ${o.ville || ""}</td>
-        <td>${o.relais?.name || "-"}</td>
-        <td>${o.amount} €</td>
-        <td>${o.payment_status}</td>
-        <td>${o.expedition_number || "-"}</td>
-        <td>
-          <button onclick="markPaid(${o.id})">✔</button>
-          <button onclick="addTracking(${o.id})">📦</button>
-        </td>
-      </tr>
-    `).join("");
+    const orders = result.rows;
+    const totalCA = orders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+    const totalPaid = orders.filter(o => o.paid).length;
+    const totalPending = orders.filter(o => !o.paid).length;
+
+    let rows = orders.map(o => {
+      const relais = o.relais || {};
+      const date = o.created_at ? new Date(o.created_at).toLocaleString("fr-FR") : "-";
+
+      return `
+        <tr>
+          <td>
+            <strong>#${o.id}</strong><br>
+            <small>${o.reference || "-"}</small>
+          </td>
+          <td>${date}</td>
+          <td>
+            <strong>${o.nom || "-"}</strong><br>
+            <small>${o.email || "-"}</small><br>
+            <small>${o.tel || "-"}</small>
+          </td>
+          <td>
+            ${o.addr || "-"}<br>
+            <small>${o.cp || ""} ${o.ville || ""}</small>
+          </td>
+          <td>
+            <strong>${relais.nom || "-"}</strong><br>
+            <small>${relais.adresse || ""}</small><br>
+            <small>${relais.code || ""}</small>
+          </td>
+          <td><strong>${o.amount || "0"} €</strong></td>
+          <td>
+            <span class="badge ${o.paid ? "paid" : "pending"}">
+              ${o.paid ? "PAYÉ" : (o.payment_status || "PENDING")}
+            </span>
+          </td>
+          <td>${o.expedition_number || "-"}</td>
+          <td class="actions">
+            <button onclick="markPaid(${o.id})">✅ Payé</button>
+            <button onclick="addTracking(${o.id})">📦 Suivi</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
 
     if (!rows) {
-      rows = `<tr><td colspan="10">Aucune commande</td></tr>`;
+      rows = `<tr><td colspan="9" class="empty">Aucune commande pour le moment.</td></tr>`;
     }
 
     res.send(`
@@ -717,78 +744,274 @@ app.get("/admin", async (req, res) => {
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Keep Cold</title>
 
 <style>
-body { font-family: Arial; background:#eef8ff; padding:20px;}
-table { width:100%; border-collapse: collapse;}
-th, td { padding:10px; border-bottom:1px solid #ccc;}
-button { padding:6px 10px; margin:2px; border-radius:6px; border:none; cursor:pointer;}
-button:hover { opacity:0.8; }
-</style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(180deg, #e8f8ff, #f7fdff);
+    color: #102033;
+  }
 
+  header {
+    background: linear-gradient(135deg, #0077b6, #00c2ff);
+    color: white;
+    padding: 28px 20px 34px;
+    border-bottom-left-radius: 28px;
+    border-bottom-right-radius: 28px;
+    box-shadow: 0 8px 22px rgba(0,119,182,0.25);
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 30px;
+  }
+
+  header p {
+    margin: 8px 0 0;
+    opacity: 0.95;
+    font-size: 16px;
+  }
+
+  .container {
+    padding: 18px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: -8px;
+    margin-bottom: 18px;
+  }
+
+  .card {
+    background: white;
+    padding: 18px;
+    border-radius: 20px;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+  }
+
+  .card small {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  .card strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 28px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    background: #0077b6;
+    color: white;
+    padding: 11px 15px;
+    border-radius: 14px;
+    border: none;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 14px rgba(0,119,182,0.22);
+  }
+
+  .btn.secondary {
+    background: #023047;
+  }
+
+  .table-box {
+    background: white;
+    border-radius: 22px;
+    overflow-x: auto;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+  }
+
+  table {
+    width: 100%;
+    min-width: 1150px;
+    border-collapse: collapse;
+  }
+
+  th {
+    background: #023047;
+    color: white;
+    text-align: left;
+    padding: 15px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px;
+    border-bottom: 1px solid #e5eef5;
+    vertical-align: top;
+    font-size: 14px;
+  }
+
+  tr:hover {
+    background: #f3fbff;
+  }
+
+  small {
+    color: #64748b;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .paid {
+    background: #d1fae5;
+    color: #047857;
+  }
+
+  .pending {
+    background: #fff7ed;
+    color: #c2410c;
+  }
+
+  .actions {
+    display: flex;
+    gap: 6px;
+    flex-direction: column;
+  }
+
+  .actions button {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-weight: bold;
+    background: #e0f2fe;
+    color: #075985;
+  }
+
+  .actions button:hover {
+    opacity: 0.8;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 32px;
+    color: #64748b;
+  }
+
+  @media (max-width: 700px) {
+    header h1 {
+      font-size: 24px;
+    }
+
+    .stats {
+      grid-template-columns: 1fr;
+    }
+
+    .container {
+      padding: 14px;
+    }
+  }
+</style>
 </head>
 
 <body>
 
-<h1>Admin Keep Cold ❄️</h1>
+<header>
+  <h1>Admin Keep Cold ❄️</h1>
+  <p>Tableau de bord des commandes</p>
+</header>
 
-<button onclick="location.reload()">🔄 Actualiser</button>
-<button onclick="exportCSV()">📊 Export CSV</button>
+<div class="container">
 
-<table>
-<tr>
-<th>ID</th>
-<th>Ref</th>
-<th>Date</th>
-<th>Client</th>
-<th>Adresse</th>
-<th>Relais</th>
-<th>Montant</th>
-<th>Paiement</th>
-<th>Tracking</th>
-<th>Actions</th>
-</tr>
+  <div class="stats">
+    <div class="card">
+      <small>Total commandes</small>
+      <strong>${orders.length}</strong>
+    </div>
 
-${rows}
+    <div class="card">
+      <small>Commandes payées</small>
+      <strong>${totalPaid}</strong>
+    </div>
 
-</table>
+    <div class="card">
+      <small>CA total</small>
+      <strong>${totalCA.toFixed(2)} €</strong>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <a class="btn" href="/admin?key=${req.query.key}">🔄 Actualiser</a>
+    <button class="btn secondary" onclick="exportCSV()">📊 Export CSV</button>
+  </div>
+
+  <div class="table-box">
+    <table>
+      <thead>
+        <tr>
+          <th>ID / Référence</th>
+          <th>Date</th>
+          <th>Client</th>
+          <th>Adresse</th>
+          <th>Point relais</th>
+          <th>Montant</th>
+          <th>Paiement</th>
+          <th>Suivi MR</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  </div>
+
+</div>
 
 <script>
-
-async function markPaid(id){
-  await fetch('/admin/pay/'+id,{method:'POST'});
+async function markPaid(id) {
+  await fetch('/admin/pay/' + id, { method: 'POST' });
   location.reload();
 }
 
-async function addTracking(id){
-  const t = prompt("Numéro de suivi");
-  if(!t) return;
+async function addTracking(id) {
+  const tracking = prompt("Numéro de suivi Mondial Relay");
+  if (!tracking) return;
 
-  await fetch('/admin/track/'+id,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({tracking:t})
+  await fetch('/admin/track/' + id, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tracking })
   });
 
   location.reload();
 }
 
-function exportCSV(){
+function exportCSV() {
   let csv = [];
-  document.querySelectorAll("table tr").forEach(row=>{
+  document.querySelectorAll("table tr").forEach(row => {
     let cols = row.querySelectorAll("td, th");
-    let data = [...cols].map(c=>c.innerText);
-    csv.push(data.join(","));
+    let data = [...cols].map(c => '"' + c.innerText.replace(/"/g, '""') + '"');
+    csv.push(data.join(";"));
   });
 
-  let blob = new Blob([csv.join("\\n")]);
+  let blob = new Blob(["\\ufeff" + csv.join("\\n")], { type: "text/csv;charset=utf-8;" });
   let a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "commandes.csv";
+  a.download = "commandes-keepcold.csv";
   a.click();
 }
-
 </script>
 
 </body>
@@ -800,7 +1023,6 @@ function exportCSV(){
     res.send("Erreur admin : " + err.message);
   }
 });
-
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
