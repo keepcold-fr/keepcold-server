@@ -279,10 +279,22 @@ app.post("/create-shipment", async (req, res) => {
 
     console.log("RÉPONSE API2 :", text);
 
-    return res.json({
-      success: response.ok,
-      raw: text
-    });
+    // 🔎 Extraction du PDF base64 depuis la réponse XML
+const match = text.match(/<Output>([\s\S]*?)<\/Output>/);
+
+if (!match) {
+  return res.json({
+    success: false,
+    error: "Aucune étiquette trouvée",
+    raw: text
+  });
+}
+
+const base64 = match[1].trim();
+
+// 📄 Envoi du PDF directement
+res.setHeader("Content-Type", "application/pdf");
+res.send(Buffer.from(base64, "base64"));
 
   } catch (err) {
     console.error("ERREUR CREATE SHIPMENT :", err);
