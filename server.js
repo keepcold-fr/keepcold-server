@@ -948,6 +948,41 @@ function exportCSV() {
     res.send("Erreur admin : " + err.message);
   }
 });
+app.get("/test-shipment", async (req, res) => {
+  try {
+    const fakeOrder = {
+      email: "test@test.com",
+      nom: "Test Client",
+      tel: "0600000000",
+      addr: "10 rue test",
+      cp: "13010",
+      ville: "Marseille",
+      relais: {
+        code: "131809" // ✅ vrai relais de tes logs
+      },
+      amount: 3
+    };
+
+    const response = await fetch("https://keepcold-server.onrender.com/create-shipment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(fakeOrder)
+    });
+
+    const data = await response.json();
+
+    console.log("TEST SHIPMENT RESULT :", data);
+
+    return res.json(data);
+
+  } catch (err) {
+    console.error("TEST ERROR :", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
