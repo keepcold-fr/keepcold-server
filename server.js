@@ -178,134 +178,110 @@ app.post("/confirm-order", async (req, res) => {
 ========================= */
 app.post("/create-shipment", async (req, res) => {
   try {
-    const { email, nom, tel, addr, cp, ville, relais, amount } = req.body;
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<ShipmentCreationRequest xmlns="http://www.mondialrelay.fr/webservice/">
+    const { email, nom, tel, addr, cp, ville, relais } = req.body;
+
+    function cleanPhone(phone) {
+      let p = String(phone || "").replace(/\s+/g, "").replace(/\./g, "");
+      if (p.startsWith("0")) p = "+33" + p.substring(1);
+      if (!p.startsWith("+")) p = "+33" + p;
+      return p;
+    }
+
+    function escapeXml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    const phoneClient = cleanPhone(tel);
+    const relayCode = relais?.code || "031095";
+
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
-    <Login>${process.env.MR_API2_LOGIN}</Login>
-    <Password>${process.env.MR_API2_PASSWORD}</Password>
-    <CustomerId>${process.env.MR_API2_BRAND_ID}</CustomerId>
+    <Login>${escapeXml(process.env.MR_API2_LOGIN)}</Login>
+    <Password>${escapeXml(process.env.MR_API2_PASSWORD)}</Password>
+    <CustomerId>CC23WJF1</CustomerId>
     <Culture>fr-FR</Culture>
     <VersionAPI>1.0</VersionAPI>
   </Context>
+
   <OutputOptions>
-    <OutputFormat>10x15</OutputFormat>
-    <OutputType>PdfUrl</OutputType>
+    <OutputFormat>PDF</OutputFormat>
+    <OutputType>URL</OutputType>
   </OutputOptions>
+
   <ShipmentsList>
     <Shipment>
-      <OrderNo>KC${Date.now().toString().slice(-10)}</OrderNo>
-      <CustomerNo>KC</CustomerNo>
+      <OrderNo>KC${Date.now()}</OrderNo>
+      <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
-      <DeliveryMode>
-        <Mode>24R</Mode>
-        <Location>${relais?.code || ""}</Location>
-      </DeliveryMode>
-      <CollectionMode>
-        <Mode>REL</Mode>
-      </CollectionMode>
+
+      <DeliveryMode Mode="24R" Location="${escapeXml(relayCode)}" />
+      <CollectionMode Mode="CCC" />
+
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight>
-            <Value>3000</Value>
-            <Unit>g</Unit>
-          </Weight>
+          <Weight Value="3000" Unit="g" />
         </Parcel>
       </Parcels>
+
       <Sender>
         <Address>
-          <Title>Keep Cold</Title>
-          <Firstname>Keep</Firstname>
-          <Lastname>Cold</Lastname>
-          <Streetname>36 rue Andre Audoli</Streetname>
-          <HouseNo></HouseNo>
+          <Firstname>Jerome</Firstname>
+          <Lastname>Carrio</Lastname>
+          <Streetname>36 RUE ANDRE AUDOLI</Streetname>
           <CountryCode>FR</CountryCode>
           <PostCode>13010</PostCode>
-          <City>Marseille</City>
-          <PhoneNo>0624947059</PhoneNo>
+          <City>MARSEILLE</City>
+          <MobileNo>+33624947059</MobileNo>
           <Email>contact@keepcold.fr</Email>
         </Address>
       </Sender>
+
       <Recipient>
         <Address>
-          <Title>${nom || "Client"}</Title>
-          <Firstname>${nom || "Client"}</Firstname>
-          <Lastname>Client</Lastname>
-          <Streetname>${addr || ""}</Streetname>
-          <HouseNo></HouseNo>
+          <Firstname>${escapeXml(nom || "Client")}</Firstname>
+          <Lastname>KeepCold</Lastname>
+          <Streetname>${escapeXml(addr)}</Streetname>
           <CountryCode>FR</CountryCode>
-          <PostCode>${cp || ""}</PostCode>
-          <City>${ville || ""}</City>
-          <PhoneNo>${tel || ""}</PhoneNo>
-          <Email>${email || ""}</Email>
+          <PostCode>${escapeXml(cp)}</PostCode>
+          <City>${escapeXml(ville)}</City>
+          <MobileNo>${escapeXml(phoneClient)}</MobileNo>
+          <Email>${escapeXml(email)}</Email>
         </Address>
       </Recipient>
     </Shipment>
   </ShipmentsList>
 </ShipmentCreationRequest>`;
 
+    console.log("XML ENVOYÉ API2 :", xml);
+
     const response = await fetch("https://connect-api.mondialrelay.com/api/Shipment", {
       method: "POST",
       headers: {
-  "Accept": "application/xml",
-  "Content-Type": "text/xml",
-  "Authorization":
-    "Basic " +
-    Buffer.from(
-      process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
-    ).toString("base64")
-},
-body: xml
-  });
+        "Accept": "application/xml",
+        "Content-Type": "text/xml; charset=utf-8",
+        "Authorization":
+          "Basic " +
+          Buffer.from(
+            process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
+          ).toString("base64")
+      },
+      body: xml
+    });
 
     const text = await response.text();
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
-
-    console.log("MR API2 RESPONSE :", data);
-
-    await resend.emails.send({
-      from: "Keep Cold <contact@keepcold.fr>",
-      to: "contact@keepcold.fr",
-      subject: "📦 Nouvelle commande Keep Cold",
-      html: `
-        <h2>Nouvelle commande reçue</h2>
-
-        <p><strong>Client :</strong> ${nom || "-"}</p>
-        <p><strong>Email :</strong> ${email || "-"}</p>
-        <p><strong>Téléphone :</strong> ${tel || "-"}</p>
-        <p><strong>Montant :</strong> ${amount || "-"} €</p>
-
-        <hr>
-
-        <p><strong>Adresse client :</strong><br>
-        ${addr || "-"}<br>
-        ${cp || ""} ${ville || ""}</p>
-
-        <hr>
-
-        <p><strong>Point relais :</strong><br>
-        ${relais?.nom || ""}<br>
-        ${relais?.adresse || ""}<br>
-        ${relais?.ville || ""}<br>
-        Code relais : ${relais?.code || ""}</p>
-
-        <hr>
-
-        <p><strong>Réponse Mondial Relay API 2 :</strong></p>
-        <pre>${JSON.stringify(data, null, 2)}</pre>
-      `
-    });
+    console.log("RÉPONSE API2 :", text);
 
     return res.json({
       success: response.ok,
-      shipment: data
+      raw: text
     });
 
   } catch (err) {
@@ -316,7 +292,6 @@ body: xml
     });
   }
 });
-
 /* =========================
    RECHERCHE POINT RELAIS
 ========================= */
