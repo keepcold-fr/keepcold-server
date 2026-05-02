@@ -178,187 +178,31 @@ app.post("/confirm-order", async (req, res) => {
 ========================= */
 app.post("/create-shipment", async (req, res) => {
   try {
-    const response = await fetch(
-      "https://connect-api.mondialrelay.com/api/Shipment",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization":
-  "Basic " +
-  Buffer.from(
-    process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
-  ).toString("base64"),
-        },
-        body: JSON.stringify(req.body),
-      }
-    );
+    const { email, nom, tel, addr, cp, ville, relais, amount } = req.body;
 
-    const data = await response.json();
-
-    console.log("MR API2 RESPONSE :", data);
-
-    return res.json({
-      success: true,
-      shipment: data,
-    });
-  } catch (err) {
-    console.error("ERREUR CREATE SHIPMENT :", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-  
-
-    const enseigne = process.env.MR_ENSEIGNE;
-    const cle = process.env.MR_PRIVATE_KEY;
-
-    const params = {
-      Enseigne: enseigne,
-      ModeCol: "REL",
-      ModeLiv: "24R",
-      NDossier: "KC-" + Date.now(),
-      NClient: nom,
-
-      Expe_Langage: "FR",
-      Expe_Ad1: "Keep Cold",
-      Expe_Ad2: "",
-      Expe_Ad3: "36 rue Andre Audoli",
-      Expe_Ad4: "",
-      Expe_Ville: "Marseille",
-      Expe_CP: "13010",
-      Expe_Pays: "FR",
-      Expe_Tel1: "0624947059",
-      Expe_Tel2: "",
-      Expe_Mail: "contact@keepcold.fr",
-
-      Dest_Langage: "FR",
-      Dest_Ad1: nom,
-      Dest_Ad2: "",
-      Dest_Ad3: addr,
-      Dest_Ad4: "",
-      Dest_Ville: ville,
-      Dest_CP: cp,
-      Dest_Pays: "FR",
-      Dest_Tel1: tel || "",
-      Dest_Tel2: "",
-      Dest_Mail: email,
-
-      Poids: "3000",
-      Longueur: "",
-      Taille: "",
-      NbColis: "1",
-
-      CRT_Valeur: "0",
-      CRT_Devise: "",
-      Exp_Valeur: "",
-      Exp_Devise: "",
-
-      COL_Rel_Pays: "",
-      COL_Rel: "",
-
-      LIV_Rel_Pays: "FR",
-      LIV_Rel: relais.code,
-
-      TAvisage: "",
-      TReprise: "",
-      Montage: "",
-      TRDV: "",
-      Assurance: "",
-      Instructions: "Commande Keep Cold"
-    };
-
-    const securityString =
-      params.Enseigne +
-      params.ModeCol +
-      params.ModeLiv +
-      params.NDossier +
-      params.NClient +
-      params.Expe_Langage +
-      params.Expe_Ad1 +
-      params.Expe_Ad2 +
-      params.Expe_Ad3 +
-      params.Expe_Ad4 +
-      params.Expe_Ville +
-      params.Expe_CP +
-      params.Expe_Pays +
-      params.Expe_Tel1 +
-      params.Expe_Tel2 +
-      params.Expe_Mail +
-      params.Dest_Langage +
-      params.Dest_Ad1 +
-      params.Dest_Ad2 +
-      params.Dest_Ad3 +
-      params.Dest_Ad4 +
-      params.Dest_Ville +
-      params.Dest_CP +
-      params.Dest_Pays +
-      params.Dest_Tel1 +
-      params.Dest_Tel2 +
-      params.Dest_Mail +
-      params.Poids +
-      params.Longueur +
-      params.Taille +
-      params.NbColis +
-      params.CRT_Valeur +
-      params.CRT_Devise +
-      params.Exp_Valeur +
-      params.Exp_Devise +
-      params.COL_Rel_Pays +
-      params.COL_Rel +
-      params.LIV_Rel_Pays +
-      params.LIV_Rel +
-      params.TAvisage +
-      params.TReprise +
-      params.Montage +
-      params.TRDV +
-      params.Assurance +
-      params.Instructions +
-      cle;
-
-    const security = crypto
-      .createHash("md5")
-      .update(securityString)
-      .digest("hex")
-      .toUpperCase();
-
-    const xml = `
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <WSI2_CreationExpedition xmlns="http://www.mondialrelay.fr/webservice/">
-      ${Object.entries(params).map(([key, value]) => `<${key}>${value}</${key}>`).join("")}
-      <Security>${security}</Security>
-    </WSI2_CreationExpedition>
-  </soap:Body>
-</soap:Envelope>`;
-
-    const response = await fetch("https://api.mondialrelay.com/WebService.asmx", {
+    const response = await fetch("https://connect-api.mondialrelay.com/api/Shipment", {
       method: "POST",
       headers: {
-        "Content-Type": "text/xml; charset=utf-8",
-        SOAPAction: "http://www.mondialrelay.fr/webservice/WSI2_CreationExpedition"
+        "Content-Type": "application/json",
+        "Authorization":
+          "Basic " +
+          Buffer.from(
+            process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
+          ).toString("base64")
       },
-      body: xml
+      body: JSON.stringify(req.body)
     });
 
     const text = await response.text();
-    console.log("EXPEDITION MR :", text);
 
-    let expeditionNumber = "NON TROUVÉ";
-
+    let data;
     try {
-      const match =
-        text.match(/<ExpeditionNum>(.*?)<\/ExpeditionNum>/) ||
-        text.match(/<ExpeditionNum[^>]*>(.*?)<\/ExpeditionNum>/) ||
-        text.match(/<Expedition>(.*?)<\/Expedition>/);
-
-      if (match && match[1]) {
-        expeditionNumber = match[1];
-      }
-    } catch (e) {
-      console.log("Erreur extraction tracking");
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
     }
 
-    console.log("TRACKING :", expeditionNumber);
+    console.log("MR API2 RESPONSE :", data);
 
     await resend.emails.send({
       from: "Keep Cold <contact@keepcold.fr>",
@@ -367,15 +211,16 @@ app.post("/create-shipment", async (req, res) => {
       html: `
         <h2>Nouvelle commande reçue</h2>
 
-        <p><strong>Client :</strong> ${nom}</p>
-        <p><strong>Email :</strong> ${email}</p>
+        <p><strong>Client :</strong> ${nom || "-"}</p>
+        <p><strong>Email :</strong> ${email || "-"}</p>
         <p><strong>Téléphone :</strong> ${tel || "-"}</p>
+        <p><strong>Montant :</strong> ${amount || "-"} €</p>
 
         <hr>
 
         <p><strong>Adresse client :</strong><br>
-        ${addr}<br>
-        ${cp} ${ville}</p>
+        ${addr || "-"}<br>
+        ${cp || ""} ${ville || ""}</p>
 
         <hr>
 
@@ -387,20 +232,14 @@ app.post("/create-shipment", async (req, res) => {
 
         <hr>
 
-        <p><strong>Numéro de suivi :</strong><br>
-        ${expeditionNumber}</p>
-
-        <p>
-          L’expédition a été créée sur Mondial Relay.<br>
-          Connecte-toi à ton espace pro pour imprimer l’étiquette.
-        </p>
+        <p><strong>Réponse Mondial Relay API 2 :</strong></p>
+        <pre>${JSON.stringify(data, null, 2)}</pre>
       `
     });
 
     return res.json({
-      success: true,
-      raw: text,
-      expeditionNumber
+      success: response.ok,
+      shipment: data
     });
 
   } catch (err) {
@@ -409,7 +248,7 @@ app.post("/create-shipment", async (req, res) => {
       success: false,
       error: err.message
     });
-  
+  }
 });
 
 /* =========================
