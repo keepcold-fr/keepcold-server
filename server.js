@@ -480,7 +480,6 @@ app.post("/verify-payment", async (req, res) => {
 }
 
     const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
-    const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
   method: "POST",
   headers: {
     "Content-Type": "application/json"
@@ -499,11 +498,11 @@ if (shipmentData.success) {
   );
 }
 
-    return res.json({
-      success: true,
-      payment,
-      shipment: shipmentData
-    });
+return res.json({
+  success: true,
+  payment,
+  shipment: shipmentData
+});
 
   } catch (err) {
     console.error("ERREUR VERIFY PAYMENT :", err);
