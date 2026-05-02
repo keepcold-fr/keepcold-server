@@ -433,13 +433,16 @@ app.post("/verify-payment", async (req, res) => {
     }
 
     if (order.paid) {
-  console.log("COMMANDE DEJA TRAITEE :", checkoutSession.id);
-  return res.json({ success: true, message: "Déjà traité" });
-}
+  console.log("COMMANDE DEJA TRAITEE :", checkout_id);
+
+  return res.json({
+    success: true,
+    message: "Commande déjà traitée"
+  });
 }
 
-    order.paid = true;
-    console.log("ENVOI EMAIL CLIENT :", order.email);
+order.paid = true;
+console.log("ENVOI EMAIL CLIENT :", order.email);
 
     try {
   await resend.emails.send({
