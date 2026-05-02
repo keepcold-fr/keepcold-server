@@ -918,6 +918,26 @@ app.get("/admin", async (req, res) => {
 </div>
 
 <script>
+async function generateLabel(id) {
+  const key = new URLSearchParams(window.location.search).get('key');
+
+  if (!confirm("Générer une étiquette ?")) return;
+
+  const res = await fetch('/admin/generate-label/' + id + '?key=' + key, {
+    method: 'POST'
+  });
+
+  const data = await res.json();
+
+  if (!data.success) {
+    alert(data.error || "Erreur");
+    return;
+  }
+
+  alert("Étiquette générée !");
+  location.reload();
+}
+
 async function markPaid(id) {
   await fetch('/admin/pay/' + id, { method: 'POST' });
   location.reload();
