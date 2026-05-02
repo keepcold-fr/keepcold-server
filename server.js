@@ -210,9 +210,9 @@ app.post("/create-shipment", async (req, res) => {
   </Context>
 
   <OutputOptions>
-    <OutputFormat>PDF</OutputFormat>
-    <OutputType>URL</OutputType>
-  </OutputOptions>
+  <OutputFormat>PDF</OutputFormat>
+  <OutputType>PdfUrl</OutputType>
+</OutputOptions>
 
   <ShipmentsList>
     <Shipment>
@@ -221,7 +221,7 @@ app.post("/create-shipment", async (req, res) => {
       <ParcelCount>1</ParcelCount>
 
       <DeliveryMode Mode="24R" Location="${escapeXml(relayCode)}" />
-    
+    <CollectionMode Mode="REL" />
 
       <Parcels>
         <Parcel>
