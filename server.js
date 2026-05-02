@@ -433,9 +433,9 @@ app.post("/verify-payment", async (req, res) => {
     }
 
     if (order.paid) {
-  console.log("COMMANDE DEJA TRAITEE :", checkout_id);
-
-  });
+  console.log("COMMANDE DEJA TRAITEE :", checkoutSession.id);
+  return res.json({ success: true, message: "Déjà traité" });
+}
 }
 
     order.paid = true;
