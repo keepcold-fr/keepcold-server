@@ -3,6 +3,7 @@ const { Resend } = require("resend");
 const orders = {};
 const crypto = require("crypto");
 const { Pool } = require("pg");
+let commandes = [];
 
 const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
