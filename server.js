@@ -483,18 +483,24 @@ app.post("/verify-payment", async (req, res) => {
 }
 
     const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(order)
-    });
+    const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(order)
+});
 
-    const buffer = await response.arrayBuffer();
+const shipmentData = await shipmentResponse.json();
 
-res.setHeader("Content-Type", "application/pdf");
-res.send(Buffer.from(buffer));
-    console.log("EXPEDITION APRES PAIEMENT :", shipmentData);
+console.log("EXPEDITION APRES PAIEMENT :", shipmentData);
+
+if (shipmentData.success) {
+  await pool.query(
+    `UPDATE orders SET expedition_number = $1 WHERE checkout_id = $2`,
+    [shipmentData.label || "OK", checkout_id]
+  );
+}
 
     return res.json({
       success: true,
