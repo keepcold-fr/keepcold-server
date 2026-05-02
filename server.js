@@ -226,7 +226,7 @@ app.post("/create-shipment", async (req, res) => {
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight Value="3" Unit="kg" />
+          <Weight Value="5" Unit="kg" />
         </Parcel>
       </Parcels>
 
