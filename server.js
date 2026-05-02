@@ -487,8 +487,10 @@ app.post("/verify-payment", async (req, res) => {
       body: JSON.stringify(order)
     });
 
-    const shipmentData = await shipmentResponse.json();
+    const buffer = await response.arrayBuffer();
 
+res.setHeader("Content-Type", "application/pdf");
+res.send(Buffer.from(buffer));
     console.log("EXPEDITION APRES PAIEMENT :", shipmentData);
 
     return res.json({
