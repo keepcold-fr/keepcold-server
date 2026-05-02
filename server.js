@@ -294,9 +294,11 @@ if (!match) {
 const base64 = match[1].trim();
 
 // 📄 Envoi du PDF directement
-res.setHeader("Content-Type", "application/pdf");
-res.send(Buffer.from(base64, "base64"));
-
+return res.json({
+  success: true,
+  label: base64
+});
+    
   } catch (err) {
     console.error("ERREUR CREATE SHIPMENT :", err);
     return res.status(500).json({
