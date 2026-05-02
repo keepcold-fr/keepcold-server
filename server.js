@@ -650,9 +650,14 @@ app.get("/admin", async (req, res) => {
           </td>
           <td>${o.expedition_number || "-"}</td>
           <td class="actions">
-            <button onclick="markPaid(${o.id})">✅ Payé</button>
-            <button onclick="addTracking(${o.id})">📦 Suivi</button>
-          </td>
+  <button onclick="markPaid(${o.id})">✅ Payé</button>
+  <button onclick="addTracking(${o.id})">📦 Suivi</button>
+  ${o.expedition_number && o.expedition_number !== "-" ? `
+    <a class="label-btn" href="/label/${o.checkout_id}?key=${req.query.key}" target="_blank">
+      🧾 Étiquette
+    </a>
+  ` : ""}
+</td>
         </tr>
       `;
     }).join("");
@@ -811,14 +816,25 @@ app.get("/admin", async (req, res) => {
     flex-direction: column;
   }
 
-  .actions button {
-    border: none;
-    border-radius: 10px;
-    padding: 8px 10px;
-    cursor: pointer;
-    font-weight: bold;
-    background: #e0f2fe;
-    color: #075985;
+.actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.label-btn {
+  text-align: center;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-weight: bold;
+  background: #d1fae5;
+  color: #047857;
+}
   }
 
   .actions button:hover {
@@ -978,6 +994,29 @@ app.get("/test-shipment", async (req, res) => {
     console.error("TEST ERROR :", err);
     return res.status(500).json({ error: err.message });
   }
+});
+app.get("/label/:checkout_id", async (req, res) => {
+  if (req.query.key !== process.env.ADMIN_KEY) {
+    return res.send("⛔ Accès refusé");
+  }
+
+  const result = await pool.query(
+    "SELECT expedition_number FROM orders WHERE checkout_id = $1",
+    [req.params.checkout_id]
+  );
+
+  if (!result.rows.length) {
+    return res.send("Commande introuvable");
+  }
+
+  const base64 = result.rows[0].expedition_number;
+
+  if (!base64 || base64 === "OK") {
+    return res.send("Étiquette non disponible");
+  }
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.send(Buffer.from(base64, "base64"));
 });
 
 app.listen(PORT, () => {
