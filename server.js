@@ -137,16 +137,15 @@ app.post("/confirm-order", async (req, res) => {
   try {
     console.log("CONFIRM ORDER RECU :", req.body);
 
-    const { email, nom, montant } = req.body;
+    const { email, nom, montant, reference, addr, cp, ville } = req.body;
 
     await resend.emails.send({
       from: "Keep Cold <contact@keepcold.fr>",
       to: email,
-      subject: "Commande confirmée ❄️",
+      subject: `Commande Keep Cold confirmée${reference ? " - " + reference : ""}`,
       html: `
 <div style="margin:0;padding:0;background:#eef8ff;font-family:Arial,Helvetica,sans-serif;color:#102033;">
   <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
-
     <div style="background:white;border-radius:22px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.10);">
 
       <div style="background:linear-gradient(135deg,#0077b6,#00c2ff);padding:28px 24px;text-align:center;color:white;">
@@ -155,9 +154,8 @@ app.post("/confirm-order", async (req, res) => {
       </div>
 
       <div style="padding:26px 24px;">
-
         <h2 style="margin:0 0 10px;font-size:22px;color:#102033;">
-          Merci ${order.nom || ""} !
+          Merci ${nom || ""} !
         </h2>
 
         <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#475569;">
@@ -168,7 +166,7 @@ app.post("/confirm-order", async (req, res) => {
           <table style="width:100%;border-collapse:collapse;font-size:14px;">
             <tr>
               <td style="padding:6px 0;color:#64748b;">Référence</td>
-              <td style="padding:6px 0;text-align:right;font-weight:700;">${order.reference || "-"}</td>
+              <td style="padding:6px 0;text-align:right;font-weight:700;">${reference || "-"}</td>
             </tr>
             <tr>
               <td style="padding:6px 0;color:#64748b;">Date</td>
@@ -197,14 +195,10 @@ app.post("/confirm-order", async (req, res) => {
           </thead>
           <tbody>
             <tr>
-              <td style="padding:14px;border-bottom:1px solid #e2e8f0;">
-                Commande Keep Cold
-              </td>
-              <td style="padding:14px;text-align:center;border-bottom:1px solid #e2e8f0;">
-                1
-              </td>
+              <td style="padding:14px;border-bottom:1px solid #e2e8f0;">Commande Keep Cold</td>
+              <td style="padding:14px;text-align:center;border-bottom:1px solid #e2e8f0;">1</td>
               <td style="padding:14px;text-align:right;border-bottom:1px solid #e2e8f0;font-weight:700;">
-                ${order.amount || montant || "0"} €
+                ${montant || "0"} €
               </td>
             </tr>
           </tbody>
@@ -212,30 +206,21 @@ app.post("/confirm-order", async (req, res) => {
 
         <div style="text-align:right;margin:18px 0 24px;">
           <div style="font-size:14px;color:#64748b;">Total payé</div>
-          <div style="font-size:28px;font-weight:800;color:#0077b6;">
-            ${order.amount || montant || "0"} €
-          </div>
+          <div style="font-size:28px;font-weight:800;color:#0077b6;">${montant || "0"} €</div>
         </div>
 
-        <div style="display:block;background:#f8fafc;border-radius:16px;padding:16px;margin-bottom:18px;">
+        <div style="background:#f8fafc;border-radius:16px;padding:16px;margin-bottom:18px;">
           <h3 style="margin:0 0 10px;font-size:16px;">Livraison</h3>
           <p style="margin:0;font-size:14px;line-height:1.6;color:#475569;">
-            <strong>${order.nom || nom || ""}</strong><br>
-            ${order.addr || ""}<br>
-            ${order.cp || ""} ${order.ville || ""}
+            <strong>${nom || ""}</strong><br>
+            ${addr || ""}<br>
+            ${cp || ""} ${ville || ""}
           </p>
         </div>
 
         <p style="margin:18px 0 0;font-size:14px;line-height:1.6;color:#475569;">
           Nous préparons ta commande. Tu recevras un nouvel email dès que ton colis sera expédié avec le numéro de suivi.
         </p>
-
-        <div style="margin-top:24px;text-align:center;">
-          <a href="https://keepcold.fr" style="display:inline-block;background:#0077b6;color:white;text-decoration:none;padding:13px 18px;border-radius:14px;font-weight:700;">
-            Retourner sur keepcold.fr
-          </a>
-        </div>
-
       </div>
 
       <div style="background:#102033;color:white;text-align:center;padding:18px;font-size:12px;line-height:1.6;">
@@ -247,8 +232,16 @@ app.post("/confirm-order", async (req, res) => {
     </div>
   </div>
 </div>
-`
+      `
+    });
 
+    return res.json({ success: true });
+
+  } catch (err) {
+    console.error("ERREUR CONFIRM ORDER :", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 /* =========================
    CREATION EXPEDITION MR
