@@ -220,7 +220,7 @@ app.post("/create-shipment", async (req, res) => {
       <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
 
-      <DeliveryMode Mode="24R" Location="${escapeXml(relayCode)}" />
+      <DeliveryMode Mode="24R" Location="FR-31095" />
     <CollectionMode Mode="REL" />
 
       <Parcels>
