@@ -180,7 +180,7 @@ app.post("/create-shipment", async (req, res) => {
   try {
     const { email, nom, tel, addr, cp, ville, relais, amount } = req.body;
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<<ShipmentCreationRequest xmlns="http://www.mondialrelay.fr/webservice/">>
+<ShipmentCreationRequest xmlns="http://www.mondialrelay.fr/webservice/">
   <Context>
     <Login>${process.env.MR_API2_LOGIN}</Login>
     <Password>${process.env.MR_API2_PASSWORD}</Password>
@@ -245,7 +245,7 @@ app.post("/create-shipment", async (req, res) => {
   </ShipmentsList>
 </ShipmentCreationRequest>`;
 
-    const response = await fetch("https://api.mondialrelay.com/api/shipment", {
+    const response = await fetch("https://connect-api.mondialrelay.com/api/Shipment", {
       method: "POST",
       headers: {
   "Accept": "application/xml",
