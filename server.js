@@ -179,19 +179,85 @@ app.post("/confirm-order", async (req, res) => {
 app.post("/create-shipment", async (req, res) => {
   try {
     const { email, nom, tel, addr, cp, ville, relais, amount } = req.body;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<ShipmentCreationRequest>
+  <Context>
+    <Login>${process.env.MR_API2_LOGIN}</Login>
+    <Password>${process.env.MR_API2_PASSWORD}</Password>
+    <CustomerId>${process.env.MR_API2_BRAND_ID}</CustomerId>
+    <Culture>fr-FR</Culture>
+    <VersionAPI>1.0</VersionAPI>
+  </Context>
+  <OutputOptions>
+    <OutputFormat>10x15</OutputFormat>
+    <OutputType>PdfUrl</OutputType>
+  </OutputOptions>
+  <ShipmentsList>
+    <Shipment>
+      <OrderNo>KC${Date.now().toString().slice(-10)}</OrderNo>
+      <CustomerNo>KC</CustomerNo>
+      <ParcelCount>1</ParcelCount>
+      <DeliveryMode>
+        <Mode>24R</Mode>
+        <Location>${relais?.code || ""}</Location>
+      </DeliveryMode>
+      <CollectionMode>
+        <Mode>REL</Mode>
+      </CollectionMode>
+      <Parcels>
+        <Parcel>
+          <Content>Commande Keep Cold</Content>
+          <Weight>
+            <Value>3000</Value>
+            <Unit>gr</Unit>
+          </Weight>
+        </Parcel>
+      </Parcels>
+      <Sender>
+        <Address>
+          <Title>Keep Cold</Title>
+          <Firstname>Keep</Firstname>
+          <Lastname>Cold</Lastname>
+          <Streetname>36 rue Andre Audoli</Streetname>
+          <HouseNo></HouseNo>
+          <CountryCode>FR</CountryCode>
+          <PostCode>13010</PostCode>
+          <City>Marseille</City>
+          <PhoneNo>0624947059</PhoneNo>
+          <Email>contact@keepcold.fr</Email>
+        </Address>
+      </Sender>
+      <Recipient>
+        <Address>
+          <Title>${nom || "Client"}</Title>
+          <Firstname>${nom || "Client"}</Firstname>
+          <Lastname>.</Lastname>
+          <Streetname>${addr || ""}</Streetname>
+          <HouseNo></HouseNo>
+          <CountryCode>FR</CountryCode>
+          <PostCode>${cp || ""}</PostCode>
+          <City>${ville || ""}</City>
+          <PhoneNo>${tel || ""}</PhoneNo>
+          <Email>${email || ""}</Email>
+        </Address>
+      </Recipient>
+    </Shipment>
+  </ShipmentsList>
+</ShipmentCreationRequest>`;
 
     const response = await fetch("https://connect-api.mondialrelay.com/api/Shipment", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization":
-          "Basic " +
-          Buffer.from(
-            process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
-          ).toString("base64")
-      },
-      body: JSON.stringify(req.body)
-    });
+  "Accept": "application/xml",
+  "Content-Type": "text/xml",
+  "Authorization":
+    "Basic " +
+    Buffer.from(
+      process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
+    ).toString("base64")
+},
+body: xml
+  });
 
     const text = await response.text();
 
