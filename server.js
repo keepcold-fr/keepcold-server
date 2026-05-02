@@ -197,7 +197,7 @@ app.post("/create-shipment", async (req, res) => {
     }
 
     const phoneClient = cleanPhone(tel);
-    const relayCode = relais?.code || "031095";
+    const relayCode = relais?.code || "FR00001";
 
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
@@ -221,12 +221,12 @@ app.post("/create-shipment", async (req, res) => {
       <ParcelCount>1</ParcelCount>
 
       <DeliveryMode Mode="24R" Location="${escapeXml(relayCode)}" />
-      <CollectionMode Mode="CCC" />
+      <CollectionMode Mode="REL" />
 
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight Value="3000" Unit="g" />
+          <Weight Value="3" Unit="kg" />
         </Parcel>
       </Parcels>
 
