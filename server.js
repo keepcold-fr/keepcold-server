@@ -178,15 +178,35 @@ app.post("/confirm-order", async (req, res) => {
 ========================= */
 app.post("/create-shipment", async (req, res) => {
   try {
-    console.log("CREATE SHIPMENT RECU :", req.body);
+    const response = await fetch(
+      "https://connect-api.mondialrelay.com/api/Shipment",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization":
+  "Basic " +
+  Buffer.from(
+    process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
+  ).toString("base64"),
+        },
+        body: JSON.stringify(req.body),
+      }
+    );
 
-    const { nom, addr, cp, ville, email, tel, relais } = req.body;
+    const data = await response.json();
 
-    if (!nom || !addr || !cp || !ville || !email || !relais || !relais.code) {
-      return res.status(400).json({
-        success: false,
-        error: "Infos client ou relais manquants"
-      });
+    console.log("MR API2 RESPONSE :", data);
+
+    return res.json({
+      success: true,
+      shipment: data,
+    });
+  } catch (err) {
+    console.error("ERREUR CREATE SHIPMENT :", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
     }
 
     const enseigne = process.env.MR_ENSEIGNE;
