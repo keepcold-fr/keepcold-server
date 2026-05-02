@@ -209,7 +209,7 @@ app.post("/create-shipment", async (req, res) => {
           <Content>Commande Keep Cold</Content>
           <Weight>
             <Value>3000</Value>
-            <Unit>gr</Unit>
+            <Unit>g</Unit>
           </Weight>
         </Parcel>
       </Parcels>
@@ -231,7 +231,7 @@ app.post("/create-shipment", async (req, res) => {
         <Address>
           <Title>${nom || "Client"}</Title>
           <Firstname>${nom || "Client"}</Firstname>
-          <Lastname>.</Lastname>
+          <Lastname>Client</Lastname>
           <Streetname>${addr || ""}</Streetname>
           <HouseNo></HouseNo>
           <CountryCode>FR</CountryCode>
