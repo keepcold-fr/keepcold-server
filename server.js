@@ -1,15 +1,15 @@
 const express = require("express");
-const { Renvoyer } = require("renvoyer");
-const commandes = {};
+const { Resend } = require("resend");
+const orders = {};
 const crypto = require("crypto");
 const { Pool } = require("pg");
 
 const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
 const pool = new Pool({
-  chaîne de connexion : process.env.DATABASE_URL,
-  ssl : {
-    rejetNon autorisé : faux
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
 });
 
@@ -19,8 +19,8 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  si (req.method === "OPTIONS") retourner res.sendStatus(200);
-  suivant();
+  if (req.method === "OPTIONS") return res.sendStatus(200);
+  next();
 });
 
 app.get("/", (req, res) => {
@@ -28,104 +28,104 @@ app.get("/", (req, res) => {
 });
 
 /* =========================
-   RÉSUMÉ DES PAIEMENTS DE CRÉATION
+   CREATION PAIEMENT SUMUP
 ========================= */
 app.post("/create-checkout", async (req, res) => {
-  essayer {
-    const { montant, email, nom, tel, addr, cp, ville, relais } = req.body;
+  try {
+    const { amount, email, nom, tel, addr, cp, ville, relais } = req.body;
 
     if (!amount || !email || !nom || !tel || !addr || !cp || !ville || !relais) {
-      retourner res.status(400).json({
-        erreur : "Infos client, panier ou point relais manquant"
+      return res.status(400).json({
+        error: "Infos client, panier ou point relais manquant"
       });
     }
 
     const checkoutReference = "KC-" + Date.now();
 
     const response = await fetch("https://api.sumup.com/v0.1/checkouts", {
-      méthode : « POST »,
-      en-têtes : {
-        Autorisation : « Bearer » + process.env.SUMUP_API_KEY,
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + process.env.SUMUP_API_KEY,
         "Content-Type": "application/json"
       },
-      corps : JSON.stringify({
-        référence_de_boutique : référence_de_boutique,
-        montant : Nombre(montant),
-        devise : « EUR »,
-        payer_par_courriel : process.env.SUMUP_MERCHANT_EMAIL,
-        description : "Commande Keep Cold",
+      body: JSON.stringify({
+        checkout_reference: checkoutReference,
+        amount: Number(amount),
+        currency: "EUR",
+        pay_to_email: process.env.SUMUP_MERCHANT_EMAIL,
+        description: "Commande Keep Cold",
         redirect_url: "https://keepcold.fr/merci.html",
-        Hosted_checkout : {
-          activé : vrai
+        hosted_checkout: {
+          enabled: true
         }
       })
     });
 
     const data = await response.json();
-    console.log("RÉPONSE SOMMAIRE :", données);
+    console.log("SUMUP RESPONSE:", data);
 
-    si (!response.ok || !data.id) {
-      retourner res.status(500).json({
-        erreur : data.message || "Erreur de création de paiement SumUp",
-        détails : données
+    if (!response.ok || !data.id) {
+      return res.status(500).json({
+        error: data.message || "Erreur création paiement SumUp",
+        details: data
       });
     }
 
     const checkoutDetails = await fetch(`https://api.sumup.com/v0.1/checkouts/${data.id}`, {
-      méthode : "GET",
-      en-têtes : {
-        Autorisation : « Bearer » + process.env.SUMUP_API_KEY
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + process.env.SUMUP_API_KEY
       }
     });
 
     const checkoutData = await checkoutDetails.json();
-    console.log("DÉTAILS DE LA COMMANDE :", checkoutData);
-commandes[data.id] = {
-  checkout_id : data.id,
-  référence : checkoutReference,
-  montant,
-  e-mail,
+    console.log("CHECKOUT DETAILS:", checkoutData);
+orders[data.id] = {
+  checkout_id: data.id,
+  reference: checkoutReference,
+  amount,
+  email,
   nom,
-  tél,
-  adresse,
+  tel,
+  addr,
   cp,
   ville,
   relais,
-  payé : faux
+  paid: false
 };
-    attendre pool.query(
-  `INSERT INTO orders
+    await pool.query(
+  `INSERT INTO orders 
    (checkout_id, reference, amount, email, nom, tel, addr, cp, ville, relais, paid, payment_status)
-   VALEURS (1 $, 2 $, 3 $, 4 $, 5 $, 6 $, 7 $, 8 $, 9 $, 10 $, 11 $, 12 $)
-   EN CAS DE CONFLIT (checkout_id) NE RIEN FAIRE`,
+   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+   ON CONFLICT (checkout_id) DO NOTHING`,
   [
-    données.id,
+    data.id,
     checkoutReference,
-    Nombre (montant),
-    e-mail,
+    Number(amount),
+    email,
     nom,
-    tél,
-    adresse,
+    tel,
+    addr,
     cp,
     ville,
     JSON.stringify(relais),
-    FAUX,
-    "EN ATTENTE"
+    false,
+    "PENDING"
   ]
 );
 
 console.log("COMMANDE ENREGISTRÉE EN DB :", checkoutReference);
 
-console.log("COMMANDE STOCKÉE :", commandes[data.id]);
-    retourner res.json({
-      URL : checkoutData.hosted_checkout_url,
-      checkout_id : data.id,
-      référence : checkoutReference
+console.log("COMMANDE STOCKÉE :", orders[data.id]);
+    return res.json({
+      url: checkoutData.hosted_checkout_url,
+      checkout_id: data.id,
+      reference: checkoutReference
     });
 
-  } attraper (erreur) {
-    retourner res.status(500).json({
-      erreur : err.message
+  } catch (err) {
+    return res.status(500).json({
+      error: err.message
     });
   }
 });
@@ -134,117 +134,117 @@ console.log("COMMANDE STOCKÉE :", commandes[data.id]);
    CONFIRMATION COMMANDE
 ========================= */
 app.post("/confirm-order", async (req, res) => {
-  essayer {
-    console.log("CONFIRMATION DE LA COMMANDE RECU :", req.body);
+  try {
+    console.log("CONFIRM ORDER RECU :", req.body);
 
     const { email, nom, montant } = req.body;
 
-    attendre resend.emails.send({
-      de : « Keep Cold <contact@keepcold.fr> »,
-      à : courriel,
-      sujet : "Commande confirmée ❄️",
+    await resend.emails.send({
+      from: "Keep Cold <contact@keepcold.fr>",
+      to: email,
+      subject: "Commande confirmée ❄️",
       html: `
         <h2>Merci ${nom} 🙌</h2>
         <p>Ta commande Keep Cold est bien confirmée.</p>
         <p><strong>Montant :</strong> ${montant} €</p>
-        <p>Nous préparons ta commande et t'enverrons le suivi très bientôt.</p>
+        <p>Nous préparons ta commande et t’enverrons le suivi très bientôt.</p>
       `
     });
 
-    const shippingResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
-      méthode : « POST »,
-      en-têtes : {
+    const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
+      method: "POST",
+      headers: {
         "Content-Type": "application/json"
       },
-      corps : JSON.stringify(req.body)
+      body: JSON.stringify(req.body)
     });
 
-    const shippingData = await shippingResponse.json();
-    console.log("DONNÉES D'EXPÉDITION :", shippingData);
+    const shipmentData = await shipmentResponse.json();
+    console.log("SHIPMENT DATA :", shipmentData);
 
-    retourner res.json({
-      succès : vrai,
-      expédition : données d'expédition
+    return res.json({
+      success: true,
+      shipment: shipmentData
     });
 
-  } attraper (erreur) {
-    console.error("ERREUR DE CONFIRMATION DE COMMANDE :", err);
+  } catch (err) {
+    console.error("ERREUR CONFIRM ORDER :", err);
     return res.status(500).json({ error: err.message });
   }
 });
 
 /* =========================
-   EXPÉDITION CRÉATION M.
+   CREATION EXPEDITION MR
 ========================= */
 app.post("/create-shipment", async (req, res) => {
-  essayer {
-    console.log("CRÉER UN RÉCUPÉ D'EXPÉDITION :", req.body);
+  try {
+    console.log("CREATE SHIPMENT RECU :", req.body);
 
-    const { nom, adresse, cp, ville, email, tel, relais } = req.body;
+    const { nom, addr, cp, ville, email, tel, relais } = req.body;
 
     if (!nom || !addr || !cp || !ville || !email || !relais || !relais.code) {
-      retourner res.status(400).json({
-        succès : faux,
-        erreur : "Infos client ou relais manquants"
+      return res.status(400).json({
+        success: false,
+        error: "Infos client ou relais manquants"
       });
     }
 
     const enseigne = process.env.MR_ENSEIGNE;
     const cle = process.env.MR_PRIVATE_KEY;
 
-    params const = {
+    const params = {
       Enseigne: enseigne,
       ModeCol: "REL",
-      ModeLiv : "24R",
-      NDossier : "KC-" + Date.now(),
-      NClient : nom,
+      ModeLiv: "24R",
+      NDossier: "KC-" + Date.now(),
+      NClient: nom,
 
       Expe_Langage: "FR",
-      Expe_Ad1 : « Garder au frais »,
-      Expe_Ad2 : "",
-      Expe_Ad3 : "36 rue André Audoli",
+      Expe_Ad1: "Keep Cold",
+      Expe_Ad2: "",
+      Expe_Ad3: "36 rue Andre Audoli",
       Expe_Ad4: "",
-      Expe_Ville : "Marseille",
-      Expe_CP : "13010",
-      Expe_Pays : "FR",
-      Expe_Tel1 : "0624947059",
+      Expe_Ville: "Marseille",
+      Expe_CP: "13010",
+      Expe_Pays: "FR",
+      Expe_Tel1: "0624947059",
       Expe_Tel2: "",
-      Expe_Mail : "contact@keepcold.fr",
+      Expe_Mail: "contact@keepcold.fr",
 
-      Langue de destination : "FR",
-      Dest_Ad1 : nom,
+      Dest_Langage: "FR",
+      Dest_Ad1: nom,
       Dest_Ad2: "",
-      Dest_Ad3 : adresse,
+      Dest_Ad3: addr,
       Dest_Ad4: "",
-      Dest_Ville : ville,
-      Dest_CP : cp,
-      Pays de destination : "FR",
+      Dest_Ville: ville,
+      Dest_CP: cp,
+      Dest_Pays: "FR",
       Dest_Tel1: tel || "",
       Dest_Tel2: "",
-      Courriel de destination : courriel,
+      Dest_Mail: email,
 
-      Poids : "3000",
-      Longueur : "",
-      Taille : "",
-      NbColis : "1",
+      Poids: "3000",
+      Longueur: "",
+      Taille: "",
+      NbColis: "1",
 
-      CRT_Valeur : "0",
-      CRT_Devis : "",
-      Exp_Valeur : "",
-      Exp_Devise : "",
+      CRT_Valeur: "0",
+      CRT_Devise: "",
+      Exp_Valeur: "",
+      Exp_Devise: "",
 
       COL_Rel_Pays: "",
       COL_Rel: "",
 
-      LIV_Rel_Pays : "FR",
-      LIV_Rel : code relais,
+      LIV_Rel_Pays: "FR",
+      LIV_Rel: relais.code,
 
-      TAvisage : "",
-      TReprise : "",
-      Montage : "",
-      TRDV : "",
-      Assurance : "",
-      Mode d'emploi : "Commande Keep Cold"
+      TAvisage: "",
+      TReprise: "",
+      Montage: "",
+      TRDV: "",
+      Assurance: "",
+      Instructions: "Commande Keep Cold"
     };
 
     const securityString =
@@ -264,7 +264,7 @@ app.post("/create-shipment", async (req, res) => {
       params.Expe_Tel1 +
       params.Expe_Tel2 +
       params.Expe_Mail +
-      params.Dest_Language +
+      params.Dest_Langage +
       params.Dest_Ad1 +
       params.Dest_Ad2 +
       params.Dest_Ad3 +
@@ -291,19 +291,19 @@ app.post("/create-shipment", async (req, res) => {
       params.TReprise +
       params.Montage +
       params.TRDV +
-      paramètres.Assurance +
+      params.Assurance +
       params.Instructions +
-      clé;
+      cle;
 
-    const sécurité = crypto
+    const security = crypto
       .createHash("md5")
-      .mise à jour(chaîne de sécurité)
+      .update(securityString)
       .digest("hex")
       .toUpperCase();
 
     const xml = `
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Corps>
+  <soap:Body>
     <WSI2_CreationExpedition xmlns="http://www.mondialrelay.fr/webservice/">
       ${Object.entries(params).map(([key, value]) => `<${key}>${value}</${key}>`).join("")}
       <Security>${security}</Security>
@@ -312,48 +312,48 @@ app.post("/create-shipment", async (req, res) => {
 </soap:Envelope>`;
 
     const response = await fetch("https://api.mondialrelay.com/WebService.asmx", {
-      méthode : « POST »,
-      en-têtes : {
+      method: "POST",
+      headers: {
         "Content-Type": "text/xml; charset=utf-8",
-        Action SOAP : "http://www.mondialrelay.fr/webservice/WSI2_CreationExpedition"
+        SOAPAction: "http://www.mondialrelay.fr/webservice/WSI2_CreationExpedition"
       },
-      corps : xml
+      body: xml
     });
 
     const text = await response.text();
-    console.log("EXPÉDITION MR :", texte);
+    console.log("EXPEDITION MR :", text);
 
-    let expéditionNumber = "NON TROUVÉ";
+    let expeditionNumber = "NON TROUVÉ";
 
-    essayer {
+    try {
       const match =
         text.match(/<ExpeditionNum>(.*?)<\/ExpeditionNum>/) ||
         text.match(/<ExpeditionNum[^>]*>(.*?)<\/ExpeditionNum>/) ||
-        text.match(/<Expédition>(.*?)<\/Expédition>/);
+        text.match(/<Expedition>(.*?)<\/Expedition>/);
 
-      si (correspondance && correspondance[1]) {
-        numéroExpédition = correspondance[1];
+      if (match && match[1]) {
+        expeditionNumber = match[1];
       }
-    } attraper (e) {
-      console.log("Suivi des erreurs d'extraction");
+    } catch (e) {
+      console.log("Erreur extraction tracking");
     }
 
-    console.log("SUIVI :", numéroExpedition);
+    console.log("TRACKING :", expeditionNumber);
 
-    attendre resend.emails.send({
-      de : « Keep Cold <contact@keepcold.fr> »,
-      à : "contact@keepcold.fr",
-      sujet : "📦Nouvelle commande Keep Cold",
+    await resend.emails.send({
+      from: "Keep Cold <contact@keepcold.fr>",
+      to: "contact@keepcold.fr",
+      subject: "📦 Nouvelle commande Keep Cold",
       html: `
         <h2>Nouvelle commande reçue</h2>
 
         <p><strong>Client :</strong> ${nom}</p>
-        <p><strong>Courriel :</strong> ${email}</p>
-        <p><strong>Téléphone :</strong> ${tel || "-"</p>
+        <p><strong>Email :</strong> ${email}</p>
+        <p><strong>Téléphone :</strong> ${tel || "-"}</p>
 
         <hr>
 
-        <p><strong>Adresse du client :</strong><br>
+        <p><strong>Adresse client :</strong><br>
         ${addr}<br>
         ${cp} ${ville}</p>
 
@@ -363,7 +363,7 @@ app.post("/create-shipment", async (req, res) => {
         ${relais?.nom || ""}<br>
         ${relais?.adresse || ""}<br>
         ${relais?.ville || ""}<br>
-        Code relais : ${relais?.code || ""</p>
+        Code relais : ${relais?.code || ""}</p>
 
         <hr>
 
@@ -371,23 +371,23 @@ app.post("/create-shipment", async (req, res) => {
         ${expeditionNumber}</p>
 
         <p>
-          L'expédition a été créée sur Mondial Relay.<br>
-          Connectez-vous à votre espace pro pour imprimer l'étiquette.
+          L’expédition a été créée sur Mondial Relay.<br>
+          Connecte-toi à ton espace pro pour imprimer l’étiquette.
         </p>
       `
     });
 
-    retourner res.json({
-      succès : vrai,
-      brut : texte,
-      numéro d'expédition
+    return res.json({
+      success: true,
+      raw: text,
+      expeditionNumber
     });
 
-  } attraper (erreur) {
-    console.error("ERREUR DE CRÉATION DE L'EXPÉDITION :", err);
-    retourner res.status(500).json({
-      succès : faux,
-      erreur : err.message
+  } catch (err) {
+    console.error("ERREUR CREATE SHIPMENT :", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
     });
   }
 });
@@ -398,22 +398,22 @@ app.post("/create-shipment", async (req, res) => {
 app.post("/mondial-relay", async (req, res) => {
   const { cp, ville } = req.body;
 
-  essayer {
+  try {
     const enseigne = process.env.MR_ENSEIGNE;
     const cle = process.env.MR_PRIVATE_KEY;
 
-    params const = {
+    const params = {
       Enseigne: enseigne,
-      Pays : "FR",
+      Pays: "FR",
       Ville: ville || "",
-      CP : cp,
-      Taille : "",
-      Poids : "",
+      CP: cp,
+      Taille: "",
+      Poids: "",
       Action: "",
       DelaiEnvoi: "0",
       RayonRecherche: "20",
-      TypeActivité : "",
-      NombreRésultats: "5"
+      TypeActivite: "",
+      NombreResultats: "5"
     };
 
     const securityString =
@@ -426,19 +426,19 @@ app.post("/mondial-relay", async (req, res) => {
       params.Action +
       params.DelaiEnvoi +
       params.RayonRecherche +
-      params.TypeActivité +
-      params.NombreRésultats +
-      clé;
+      params.TypeActivite +
+      params.NombreResultats +
+      cle;
 
-    const sécurité = crypto
+    const security = crypto
       .createHash("md5")
-      .mise à jour(chaîne de sécurité)
+      .update(securityString)
       .digest("hex")
       .toUpperCase();
 
     const xml = `
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Corps>
+  <soap:Body>
     <WSI4_PointRelais_Recherche xmlns="http://www.mondialrelay.fr/webservice/">
       <Enseigne>${params.Enseigne}</Enseigne>
       <Pays>${params.Pays}</Pays>
@@ -457,83 +457,83 @@ app.post("/mondial-relay", async (req, res) => {
 </soap:Envelope>`;
 
     const response = await fetch("https://api.mondialrelay.com/WebService.asmx", {
-      méthode : « POST »,
-      en-têtes : {
+      method: "POST",
+      headers: {
         "Content-Type": "text/xml; charset=utf-8",
-        Action SOAP : "http://www.mondialrelay.fr/webservice/WSI4_PointRelais_Recherche"
+        SOAPAction: "http://www.mondialrelay.fr/webservice/WSI4_PointRelais_Recherche"
       },
-      corps : xml
+      body: xml
     });
 
     const text = await response.text();
-    console.log("Réponse MR relais :", texte);
+    console.log("Réponse MR relais :", text);
 
     return res.json({ success: true, raw: text });
 
-  } attraper (erreur) {
+  } catch (error) {
     console.error("Erreur Mondial Relay :", error);
-    retourner res.status(500).json({
-      succès : faux,
-      erreur : message d'erreur
+    return res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
 app.post("/verify-payment", async (req, res) => {
-  essayer {
+  try {
     const { checkout_id } = req.body;
 
-    si (!checkout_id) {
-      retourner res.status(400).json({
-        succès : faux,
-        erreur : « checkout_id manquant »
+    if (!checkout_id) {
+      return res.status(400).json({
+        success: false,
+        error: "checkout_id manquant"
       });
     }
 
-    const commande = commandes[checkout_id];
+    const order = orders[checkout_id];
 
-    si (!ordre) {
-      retourner res.status(404).json({
-        succès : faux,
-        erreur : "Commande introuvable sur le serveur"
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: "Commande introuvable sur le serveur"
       });
     }
 
     const response = await fetch(`https://api.sumup.com/v0.1/checkouts/${checkout_id}`, {
-      méthode : "GET",
-      en-têtes : {
-        Autorisation : « Bearer » + process.env.SUMUP_API_KEY
+      method: "GET",
+      headers: {
+        Authorization: "Bearer " + process.env.SUMUP_API_KEY
       }
     });
 
-    const paiement = attendre la réponse.json();
+    const payment = await response.json();
 
     console.log("VERIF SUMUP :", payment);
 
-    si (payment.status !== "PAID") {
-      retourner res.json({
-        succès : faux,
-        statut : paiement.statut,
-        message : "Paiement non confirmé"
+    if (payment.status !== "PAID") {
+      return res.json({
+        success: false,
+        status: payment.status,
+        message: "Paiement non confirmé"
       });
     }
 
-    si (commande.payée) {
+    if (order.paid) {
   console.log("COMMANDE DEJA TRAITEE :", checkout_id);
 
-  retourner res.json({
-    succès : vrai,
-    message : "Commande déjà traitée"
+  return res.json({
+    success: true,
+    message: "Commande déjà traitée"
   });
 }
 
-    commande.payée = vrai;
+    order.paid = true;
     console.log("ENVOI EMAIL CLIENT :", order.email);
 
-    essayer {
-  attendre resend.emails.send({
-    de : « Keep Cold <contact@keepcold.fr> »,
-    à : commande.email,
-    sujet : "Commande confirmée ❄️",
+    try {
+  await resend.emails.send({
+    from: "Keep Cold <contact@keepcold.fr>",
+    to: order.email,
+    subject: "Commande confirmée ❄️",
     html: `
       <h2>Merci ${order.nom} 🙌</h2>
       <p>Ta commande Keep Cold est bien confirmée.</p>
@@ -541,355 +541,488 @@ app.post("/verify-payment", async (req, res) => {
     `
   });
 
-  console.log("CLIENT DE COURRIEL OK");
+  console.log("EMAIL CLIENT OK");
 
-} attraper (erreur) {
+} catch (err) {
   console.error("ERREUR EMAIL CLIENT :", err);
 }
     
-    essayer {
-  attendre resend.emails.send({
-    de : « Keep Cold <contact@keepcold.fr> »,
-    à : "contact@keepcold.fr",
-    sujet : "💰 Paiement confirmé Keep Cold",
+    try {
+  await resend.emails.send({
+    from: "Keep Cold <contact@keepcold.fr>",
+    to: "contact@keepcold.fr",
+    subject: "💰 Paiement confirmé Keep Cold",
     html: `
       <h2>Paiement confirmé</h2>
       <p><strong>Référence :</strong> ${order.reference}</p>
       <p><strong>Montant :</strong> ${order.amount}€</p>
       <p><strong>Client :</strong> ${order.nom}</p>
-      <p><strong>Courriel :</strong> ${order.email}</p>
+      <p><strong>Email :</strong> ${order.email}</p>
     `
   });
 
   console.log("EMAIL ADMIN OK");
 
-} attraper (erreur) {
+} catch (err) {
   console.error("ERREUR EMAIL ADMIN :", err);
 }
 
-    const shippingResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
-      méthode : « POST »,
-      en-têtes : {
+    const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
+      method: "POST",
+      headers: {
         "Content-Type": "application/json"
       },
-      corps : JSON.stringify(ordre)
+      body: JSON.stringify(order)
     });
 
-    const shippingData = await shippingResponse.json();
+    const shipmentData = await shipmentResponse.json();
 
-    console.log("EXPEDITION APRES PAIEMENT :", expéditionData);
+    console.log("EXPEDITION APRES PAIEMENT :", shipmentData);
 
-    retourner res.json({
-      succès : vrai,
-      paiement,
-      expédition : données d'expédition
+    return res.json({
+      success: true,
+      payment,
+      shipment: shipmentData
     });
 
-  } attraper (erreur) {
-    console.error("ERREUR DE VÉRIFICATION DU PAIEMENT :", err);
-    retourner res.status(500).json({
-      succès : faux,
-      erreur : err.message
+  } catch (err) {
+    console.error("ERREUR VERIFY PAYMENT :", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
     });
   }
 });
 const PORT = process.env.PORT || 3000;
 app.get("/test-db", async (req, res) => {
-  essayer {
-    console.log("L'URL de la base de données existe-t-elle ?", !!process.env.DATABASE_URL);
+  try {
+    console.log("DATABASE_URL existe ?", !!process.env.DATABASE_URL);
 
     const result = await pool.query("SELECT NOW()");
 
     res.json({
-      succès : vrai,
-      temps : résultat.lignes[0]
+      success: true,
+      time: result.rows[0]
     });
-  } attraper (erreur) {
-    console.error("ERREUR DE BASE DE DONNÉES COMPLÈTE :", err);
+  } catch (err) {
+    console.error("DB ERROR FULL:", err);
 
     res.status(500).json({
-      succès : faux,
-      erreur : err.message || String(err),
-      code : err.code || null
+      success: false,
+      error: err.message || String(err),
+      code: err.code || null
     });
   }
 });
 
 app.get("/init-db", async (req, res) => {
-  essayer {
-    attendre pool.query(`
-      CRÉER LA TABLE SI ELLE N'EXISTE PAS commandes (
-        id CLÉ PRIMAIRE SÉRIE,
-        checkout_id TEXTE UNIQUE,
-        TEXTE de référence,
-        montant NUMÉRIQUE,
-        Courriel TEXTE,
-        nom TEXTE,
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        checkout_id TEXT UNIQUE,
+        reference TEXT,
+        amount NUMERIC,
+        email TEXT,
+        nom TEXT,
         tel TEXT,
-        adresse TEXTE,
-        cp TEXTE,
-        ville TEXTE,
+        addr TEXT,
+        cp TEXT,
+        ville TEXT,
         relais JSONB,
-        payé BOOLÉEN PAR DÉFAUT faux,
-        statut_paiement TEXT PAR DÉFAUT 'EN ATTENTE',
-        numéro_expédition TEXTE,
-        créé_à TIMESTAMP DEFAULT NOW(),
-        mis à jour à TIMESTAMP DEFAULT NOW()
+        paid BOOLEAN DEFAULT false,
+        payment_status TEXT DEFAULT 'PENDING',
+        expedition_number TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
 
-    res.json({ success: true, message: "Table commandes créées" });
-  } attraper (erreur) {
+    res.json({ success: true, message: "Table orders créée" });
+  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 app.get("/admin/orders", async (req, res) => {
-  essayer {
-    const résultat = await pool.query(`
-      SÉLECTIONNER
-        identifiant,
-        référence,
-        identifiant_de_la_boutique,
-        montant,
-        e-mail,
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id,
+        reference,
+        checkout_id,
+        amount,
+        email,
         nom,
-        tél,
+        tel,
         cp,
         ville,
-        payé,
-        statut_de_paiement,
-        numéro_expédition,
-        créé_à
-      À PARTIR DES commandes
-      TRIER PAR created_at DESC
+        paid,
+        payment_status,
+        expedition_number,
+        created_at
+      FROM orders
+      ORDER BY created_at DESC
     `);
 
     res.json({
-      succès : vrai,
-      commandes : résultat.lignes
+      success: true,
+      orders: result.rows
     });
-  } attraper (erreur) {
-    console.error("ERREUR COMMANDES ADMINISTRATIVES :", err);
+  } catch (err) {
+    console.error("ERREUR ADMIN ORDERS :", err);
     res.status(500).json({
-      succès : faux,
-      erreur : err.message
+      success: false,
+      error: err.message
     });
   }
 });
 
-app.get("/admin", async (req, res) => { if (req.query.key !== process.env.ADMIN_KEY) { return res.send("⛔ Accès refusé"); }
+app.get("/admin", async (req, res) => {
+  if (req.query.key !== process.env.ADMIN_KEY) {
+    return res.send("⛔ Accès refusé");
+  }
 
-try { const key = req.query.key; const search = (req.query.search || "").trim().toLowerCase(); const status = req.query.status || "all";
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM orders
+      ORDER BY created_at DESC
+    `);
 
-const résultat = await pool.query(`
-  SÉLECTIONNER *
-  À PARTIR DES commandes
-  TRIER PAR created_at DESC
-`);
+    const orders = result.rows;
+    const totalCA = orders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+    const totalPaid = orders.filter(o => o.paid).length;
+    const totalPending = orders.filter(o => !o.paid).length;
 
-soit orders = result.rows;
-const allOrders = result.rows;
+    let rows = orders.map(o => {
+      const relais = o.relais || {};
+      const date = o.created_at ? new Date(o.created_at).toLocaleString("fr-FR") : "-";
 
-commandes = commandes.filter(o => {
-  const isPaid = o.paid || o.payment_status === "PAID";
-  const isShipped = !!o.numéro_expédition;
+      return `
+        <tr>
+          <td>
+            <strong>#${o.id}</strong><br>
+            <small>${o.reference || "-"}</small>
+          </td>
+          <td>${date}</td>
+          <td>
+            <strong>${o.nom || "-"}</strong><br>
+            <small>${o.email || "-"}</small><br>
+            <small>${o.tel || "-"}</small>
+          </td>
+          <td>
+            ${o.addr || "-"}<br>
+            <small>${o.cp || ""} ${o.ville || ""}</small>
+          </td>
+          <td>
+            <strong>${relais.nom || "-"}</strong><br>
+            <small>${relais.adresse || ""}</small><br>
+            <small>${relais.code || ""}</small>
+          </td>
+          <td><strong>${o.amount || "0"} €</strong></td>
+          <td>
+            <span class="badge ${o.paid ? "paid" : "pending"}">
+              ${o.paid ? "PAYÉ" : (o.payment_status || "PENDING")}
+            </span>
+          </td>
+          <td>${o.expedition_number || "-"}</td>
+          <td class="actions">
+            <button onclick="markPaid(${o.id})">✅ Payé</button>
+            <button onclick="addTracking(${o.id})">📦 Suivi</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
 
-  si (statut === "payé" && !isPaid) retourner faux ;
-  if (statut === "en attente" && isPaid) renvoie false ;
-  si (statut === "expédié" && !estExpédié) retourner faux ;
+    if (!rows) {
+      rows = `<tr><td colspan="9" class="empty">Aucune commande pour le moment.</td></tr>`;
+    }
 
-  si (!recherche) retourner vrai ;
-
-  const fullText = `
-    ${o.reference || ""}
-    ${o.nom || ""}
-    ${o.email || ""}
-    ${o.tel || ""}
-    ${o.addr || ""}
-    ${o.cp || ""}
-    ${o.ville || ""}
-    ${o.numéro_expédition || ""}
-  `.toLowerCase();
-
-  retourner fullText.includes(search);
-});
-
-const totalCA = allOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
-const totalPaid = allOrders.filter(o => o.paid || o.payment_status === "PAID").length;
-const totalPending = allOrders.filter(o => !(o.paid || o.payment_status === "PAID")).length;
-const totalExpédié = toutesLesCommandes.filter(o => !!o.numéro_expédition).length;
-
-let rows = orders.map(o => {
-  const relais = o.relais || {} ;
-  const isPaid = o.paid || o.payment_status === "PAID";
-  const isShipped = !!o.numéro_expédition;
-  const date = o.created_at ? new Date(o.created_at).toLocaleString("fr-FR") : "-";
-
-  const relaisNom = relais.nom || relais.nom || relais.Nom || relais.libelle || "-" ;
-  const relaisAdresse = relais.adresse || relais.adresse || relais.Adresse || relais.adresse1 || "" ;
-  const relaisVille = relais.ville || relais.city || relais.Ville || "" ;
-  const relaisCode = relais.code || relais.id || relais.ID || relais.num || "" ;
-
-  const trackingLink = o.numéro_expédition
-    ? `<a href="https://www.mondialrelay.fr/suivi-de-colis/?numero=${encodeURIComponent(o.expedition_number)}" target="_blank">${o.expedition_number}</a>`
-    : "-";
-
-  retourner `
-    <tr>
-      <td>
-        <strong>#${o.id}</strong><br>
-        <small>${o.reference || "-"}</small>
-      </td>
-      <td>${date}</td>
-      <td>
-        <strong>${o.nom || "-"}</strong><br>
-        <small>${o.email || "-"}</small><br>
-        <small>${o.tel || "-"}</small>
-      </td>
-      <td>
-        ${o.addr || "-"}<br>
-        <small>${o.cp || ""} ${o.ville || ""}</small>
-      </td>
-      <td>
-        <strong>${relaisNom}</strong><br>
-        <small>${relaisAdresse}</small><br>
-        <small>${relaisVille}</small><br>
-        <small>${relaisCode}</small>
-      </td>
-      <td><strong>${o.amount || "0"} €</strong></td>
-      <td>
-        <span class="badge ${isPaid ? "payé" : "en attente"}">
-          ${isPaid ? "PAYÉ" : "EN ATTENTE"}
-        </span>
-      </td>
-      <td>
-        <span class="badge ${isShipped ? "expédié" : "en attente"}">
-          ${isExpédié ? "EXPÉDIÉ" : "NON EXPÉDIÉ"}
-        </span><br>
-        <small>${trackingLink}</small>
-      </td>
-      <td class="actions">
-        ${!isPaid ? `<button onclick="markPaid(${o.id})">✅ Marquer payé</button>` : `<button Disabled>✅ Payé</button>`}
-        <button onclick="addTracking(${o.id})">📦 Ajouter suivi</button>
-      </td>
-    </tr>
-  `;
-}).rejoindre("");
-
-si (!lignes) {
-  rows = `<tr><td colspan="9" class="empty">Aucune commande trouvée.</td></tr>`;
-}
-
-res.send(`
-
-<!DOCTYPE html><html lang="fr">
+    res.send(`
+<!DOCTYPE html>
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Keep Cold</title>
+
 <style>
-  corps { marge:0; police:Arial,sans-serif; arrière-plan:dégradé-linéaire(180deg,#e8f8ff,#f7fdff); couleur:#102033; }
-  header { background:linear-gradient(135deg,#0077b6,#00c2ff); color:white; padding:28px 20px 34px; border-bottom-left-radius:28px; border-bottom-right-radius:28px; box-shadow:0 8px 22px rgba(0,119,182,.25); }
-  titre h1 { marge:0; taille de police:30px; }
-  header p { margin:8px 0 0; opacity:.95; font-size:16px; }
-  .container { padding:18px; }
-  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
-  .card { background:white; padding:18px; border-radius:20px; box-shadow:0 8px 22px rgba(0,0,0,.08); }
-  .card small { color:#64748b; font-size:14px; }
-  .card strong { display:block; margin-top:8px; font-size:26px; }
-  .toolbar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
-  .toolbar input,.toolbar select { padding:11px 12px; border-radius:12px; border:1px solid #cbd5e1; font-size:14px; }
-  .btn { background:#0077b6; color:white; padding:11px 15px; border-radius:14px; border:none; text-decoration:none; font-weight:bold; cursor:pointer; box-shadow:0 5px 14px rgba(0,119,182,.22); }
-  .btn.secondary { background:#023047; }
-  .table-box { background:white; border-radius:22px; overflow-x:auto; box-shadow:0 8px 22px rgba(0,0,0,.08); }
-  tableau { largeur:100%; largeur-min:1250px; bordure-réduction:réduction; }
-  th { background:#023047; color:white; text-align:left; padding:15px; font-size:13px; white-space:nowrap; }
-  td { padding:14px; border-bottom:1px solid #e5eef5; vertical-align:top; font-size:14px; }
-  tr:hover { background:#f3fbff; }
-  petit { couleur:#64748b; }
-  .badge { display:inline-block; padding:7px 11px; border-radius:999px; font-size:12px; font-weight:bold; }
-  .paid { background:#d1fae5; color:#047857; }
-  .pending { background:#fff7ed; color:#c2410c; }
-  .shipped { background:#dbeafe; color:#1d4ed8; }
-  .actions { display:flex; gap:6px; flex-direction:column; }
-  .actions button { border:none; border-radius:10px; padding:8px 10px; cursor:pointer; font-weight:bold; background:#e0f2fe; color:#075985; }
-  .actions bouton:désactivé { opacité:.6; curseur:non autorisé; }
-  .empty { text-align:center; padding:32px; color:#64748b; }
-  @media(max-width:700px){ header h1{font-size:24px;} .stats{grid-template-columns:1fr;} .container{padding:14px;} }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(180deg, #e8f8ff, #f7fdff);
+    color: #102033;
+  }
+
+  header {
+    background: linear-gradient(135deg, #0077b6, #00c2ff);
+    color: white;
+    padding: 28px 20px 34px;
+    border-bottom-left-radius: 28px;
+    border-bottom-right-radius: 28px;
+    box-shadow: 0 8px 22px rgba(0,119,182,0.25);
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 30px;
+  }
+
+  header p {
+    margin: 8px 0 0;
+    opacity: 0.95;
+    font-size: 16px;
+  }
+
+  .container {
+    padding: 18px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: -8px;
+    margin-bottom: 18px;
+  }
+
+  .card {
+    background: white;
+    padding: 18px;
+    border-radius: 20px;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+  }
+
+  .card small {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  .card strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 28px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    background: #0077b6;
+    color: white;
+    padding: 11px 15px;
+    border-radius: 14px;
+    border: none;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 14px rgba(0,119,182,0.22);
+  }
+
+  .btn.secondary {
+    background: #023047;
+  }
+
+  .table-box {
+    background: white;
+    border-radius: 22px;
+    overflow-x: auto;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+  }
+
+  table {
+    width: 100%;
+    min-width: 1150px;
+    border-collapse: collapse;
+  }
+
+  th {
+    background: #023047;
+    color: white;
+    text-align: left;
+    padding: 15px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px;
+    border-bottom: 1px solid #e5eef5;
+    vertical-align: top;
+    font-size: 14px;
+  }
+
+  tr:hover {
+    background: #f3fbff;
+  }
+
+  small {
+    color: #64748b;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .paid {
+    background: #d1fae5;
+    color: #047857;
+  }
+
+  .pending {
+    background: #fff7ed;
+    color: #c2410c;
+  }
+
+  .actions {
+    display: flex;
+    gap: 6px;
+    flex-direction: column;
+  }
+
+  .actions button {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-weight: bold;
+    background: #e0f2fe;
+    color: #075985;
+  }
+
+  .actions button:hover {
+    opacity: 0.8;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 32px;
+    color: #64748b;
+  }
+
+  @media (max-width: 700px) {
+    header h1 {
+      font-size: 24px;
+    }
+
+    .stats {
+      grid-template-columns: 1fr;
+    }
+
+    .container {
+      padding: 14px;
+    }
+  }
 </style>
 </head>
-<corps>
+
+<body>
+
 <header>
-  <h1>Admin Gardez le froid ❄️</h1>
-  <p>Commandes, paiements, points relais et suivis colis</p>
+  <h1>Admin Keep Cold ❄️</h1>
+  <p>Tableau de bord des commandes</p>
 </header>
+
 <div class="container">
+
   <div class="stats">
-    <div class="card"><small>Nombre total de commandes</small><strong>${allOrders.length}</strong></div>
-    <div class="card"><small>Payées</small><strong>${totalPaid}</strong></div>
-    <div class="card"><small>En attente</small><strong>${totalPending}</strong></div>
-    <div class="card"><small>Total CA</small><strong>${totalCA.toFixed(2)} €</strong></div>
+    <div class="card">
+      <small>Total commandes</small>
+      <strong>${orders.length}</strong>
+    </div>
+
+    <div class="card">
+      <small>Commandes payées</small>
+      <strong>${totalPaid}</strong>
+    </div>
+
+    <div class="card">
+      <small>CA total</small>
+      <strong>${totalCA.toFixed(2)} €</strong>
+    </div>
   </div>
-  <form class="toolbar" method="GET" action="/admin">
-    <input type="hidden" name="key" value="${key}">
-    <input type="text" name="search" placeholder="Rechercher client, ville, email..." value="${search}">
-    <select name="statut">
-      <option value="all" ${status === "all" ? "selected" : ""}>Toutes</option>
-      <option value="paid" ${status === "paid" ? "selected" : ""}>Payées</option>
-      <option value="pending" ${status === "pending" ? "selected" : ""}>En attente</option>
-      <option value="shipped" ${status === "shipped" ? "selected" : ""}>Expédiés</option>
-    </select>
-    <button class="btn" type="submit">🔍 Filtrer</button>
-    <a class="btn" href="/admin?key=${key}">🔄 Réinitialiser</a>
-    <button class="btn secondary" type="button" onclick="exportCSV()">📊 Exporter au format CSV</button>
-  </form>
+
+  <div class="toolbar">
+    <a class="btn" href="/admin?key=${req.query.key}">🔄 Actualiser</a>
+    <button class="btn secondary" onclick="exportCSV()">📊 Export CSV</button>
+  </div>
+
   <div class="table-box">
     <table>
       <thead>
         <tr>
-          <th>ID / Référence</th><th>Date</th><th>Client</th><th>Adresse</th><th>Point relais / Casier</th><th>Montant</th><th>Paiement</th><th>Expédition</th><th>Actions</th>
+          <th>ID / Référence</th>
+          <th>Date</th>
+          <th>Client</th>
+          <th>Adresse</th>
+          <th>Point relais</th>
+          <th>Montant</th>
+          <th>Paiement</th>
+          <th>Suivi MR</th>
+          <th>Actions</th>
         </tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>
+        ${rows}
+      </tbody>
     </table>
   </div>
+
 </div>
+
 <script>
-fonction asynchrone markPaid(id){
-  if(!confirm("Marquer cette commande comme payée ?")) return;
-  await fetch('/admin/pay/' + id, { method:'POST' });
-  location.recharger();
+async function markPaid(id) {
+  await fetch('/admin/pay/' + id, { method: 'POST' });
+  location.reload();
 }
-fonction asynchrone ajouterTracking(id){
+
+async function addTracking(id) {
   const tracking = prompt("Numéro de suivi Mondial Relay");
-  si (!suivi) retourner;
-  await fetch('/admin/track/' + id, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ tracking }) });
-  location.recharger();
+  if (!tracking) return;
+
+  await fetch('/admin/track/' + id, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tracking })
+  });
+
+  location.reload();
 }
-fonction exportCSV(){
-  soit csv = [];
+
+function exportCSV() {
+  let csv = [];
   document.querySelectorAll("table tr").forEach(row => {
     let cols = row.querySelectorAll("td, th");
-    let data = [...cols].map(c => '"' + c.innerText.replace(/"/g, '""').replace(/\n/g, " ") + '"');
+    let data = [...cols].map(c => '"' + c.innerText.replace(/"/g, '""') + '"');
     csv.push(data.join(";"));
   });
-  let blob = new Blob(["\ufeff" + csv.join("\n")], { type:"text/csv;charset=utf-8;" });
+
+  let blob = new Blob(["\\ufeff" + csv.join("\\n")], { type: "text/csv;charset=utf-8;" });
   let a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "commandes-keepcold.csv";
   a.click();
 }
 </script>
+
 </body>
 </html>
     `);
-  } attraper (erreur) {
+
+  } catch (err) {
     console.error("ERREUR ADMIN :", err);
     res.send("Erreur admin : " + err.message);
   }
-});app.post("/admin/pay/:id", async (req, res) => { try { await pool.query( "UPDATE orders SET paid=true, payment_status='PAID', updated_at=NOW() WHERE id=$1", [req.params.id] ); res.json({ success: true }); } catch (err) { console.error("ERREUR ADMIN PAY :", err); res.status(500).json({ success: false, error: err.message }); } });
-
-app.post("/admin/track/:id", async (req, res) => { try { const { tracking } = req.body; await pool.query( "UPDATE orders SET expedition_number=$1, updated_at=NOW() WHERE id=$2", [tracking, req.params.id] ); res.json({ success: true }); } catch (err) { console.error("ERREUR ADMIN TRACK :", err); res.status(500).json({ success: false, error: err.message }); } });app.listen(PORT, () => {
+});
+app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
