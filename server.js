@@ -298,7 +298,7 @@ if (!relayCode) {
     const orderNo = reference || "KC-" + Date.now();
 const weight = 1500; // 1.5 kg SAFE
     const xml = `<?xml version="1.0" encoding="utf-8"?>
-<ShipmentCreationRequest xmlns="http://www.example.org/Request">
+<ShipmentCreationRequest>
   <Context>
     <Login>${escapeXml(process.env.MR_API2_LOGIN)}</Login>
     <Password>${escapeXml(process.env.MR_API2_PASSWORD)}</Password>
