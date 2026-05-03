@@ -319,7 +319,7 @@ const weight = 1500; // 1.5 kg SAFE
       <ParcelCount>1</ParcelCount>
 
       <DeliveryMode Mode="24R" Location="${escapeXml(relayCode)}" />
-      <CollectionMode Mode="REL" />
+      <CollectionMode Mode="CCC" />
 
       <Parcels>
         <Parcel>
