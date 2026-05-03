@@ -846,7 +846,9 @@ app.post("/admin/generate-label/:id", async (req, res) => {
     res.json({
       success: true,
       label: shipmentData.label
-        
+      
+        });
+    
 /* =========================
    ADMIN - ACTIONS EN MASSE
 ========================= */
