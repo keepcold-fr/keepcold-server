@@ -309,7 +309,7 @@ const weight = 1500; // 1.5 kg SAFE
 
   <OutputOptions>
     <OutputFormat>PDF</OutputFormat>
-    <OutputType>PdfUrl</OutputType>
+    <OutputType>Pdf</OutputType>
   </OutputOptions>
 
   <ShipmentsList>
