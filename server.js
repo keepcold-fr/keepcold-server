@@ -703,21 +703,23 @@ app.post("/admin/pay/:id", async (req, res) => {
   if (!checkAdmin(req, res)) return;
 
   try {
-    await pool.query(
-      `
+    const id = req.params.id;
+
+    await pool.query(`
       UPDATE orders
       SET paid = true,
           payment_status = 'PAID',
-          status = 'PAYEE',
           updated_at = NOW()
       WHERE id = $1
-      `,
-      [req.params.id]
-    );
+    `, [id]);
 
     res.json({ success: true });
+
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
