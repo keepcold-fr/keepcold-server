@@ -855,7 +855,101 @@ app.post("/admin/generate-label/:id", async (req, res) => {
   });
 }
 });
-    
+
+/* =========================
+   ADMIN - GENERER ETIQUETTES EN MASSE
+========================= */
+app.post("/admin/bulk-generate-labels", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.json({
+        success: false,
+        error: "Aucune commande sélectionnée"
+      });
+    }
+
+    const done = [];
+    const errors = [];
+
+    for (const id of ids) {
+      try {
+        const result = await pool.query(
+          "SELECT * FROM orders WHERE id = $1",
+          [id]
+        );
+
+        if (!result.rows.length) {
+          errors.push({ id, error: "Commande introuvable" });
+          continue;
+        }
+
+        const order = result.rows[0];
+
+        if (!order.paid) {
+          errors.push({ id, error: "Commande non payée" });
+          continue;
+        }
+
+        if (order.expedition_number) {
+          done.push({ id, message: "Étiquette déjà existante" });
+          continue;
+        }
+
+        const shipmentResponse = await fetch(
+          "https://keepcold-server.onrender.com/create-shipment",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(order)
+          }
+        );
+
+        const shipmentData = await shipmentResponse.json();
+
+        if (!shipmentData.success) {
+          errors.push({
+            id,
+            error: shipmentData.error || "Erreur création étiquette"
+          });
+          continue;
+        }
+
+        await pool.query(
+          `
+          UPDATE orders
+          SET expedition_number = $1,
+              status = 'ETIQUETTE',
+              updated_at = NOW()
+          WHERE id = $2
+          `,
+          [shipmentData.label, id]
+        );
+
+        done.push({ id, message: "Étiquette créée" });
+
+      } catch (err) {
+        errors.push({ id, error: err.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      done,
+      errors
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
 /* =========================
    ADMIN - ACTIONS EN MASSE
 ========================= */
