@@ -324,7 +324,7 @@ const weight = 1500; // 1.5 kg SAFE
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight Value="${weight}" Unit="g" />
+          <Weight>${weight}</Weight>
         </Parcel>
       </Parcels>
 
