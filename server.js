@@ -1,21 +1,22 @@
 const express = require("express");
 const { Resend } = require("resend");
-const orders = {};
 const crypto = require("crypto");
 const { Pool } = require("pg");
-let commandes = [];
+const orders = {};
 
 const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false }
 });
 
 app.use(express.json());
 
+/* =========================
+   CORS
+========================= */
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "*");
@@ -24,9 +25,57 @@ app.use((req, res, next) => {
   next();
 });
 
+/* =========================
+   ROOT
+========================= */
 app.get("/", (req, res) => {
-  res.send("Serveur KeepCold OK");
+  res.send("🚀 Serveur KeepCold OK");
 });
+
+/* =========================
+   INIT DB (AMÉLIORÉ)
+========================= */
+app.get("/init-db", async (req, res) => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        checkout_id TEXT UNIQUE,
+        reference TEXT,
+        amount NUMERIC,
+        email TEXT,
+        nom TEXT,
+        tel TEXT,
+        addr TEXT,
+        cp TEXT,
+        ville TEXT,
+        relais JSONB,
+        paid BOOLEAN DEFAULT false,
+        payment_status TEXT DEFAULT 'PENDING',
+        expedition_number TEXT,
+        status TEXT DEFAULT 'NOUVELLE',
+        printed BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* =========================
+   SÉCURITÉ ADMIN
+========================= */
+function checkAdmin(req, res) {
+  if (req.query.key !== process.env.ADMIN_KEY) {
+    res.status(403).send("⛔ Accès refusé");
+    return false;
+  }
+  return true;
+}
 
 /* =========================
    CREATION PAIEMENT SUMUP
@@ -37,6 +86,7 @@ app.post("/create-checkout", async (req, res) => {
 
     if (!amount || !email || !nom || !tel || !addr || !cp || !ville || !relais) {
       return res.status(400).json({
+        success: false,
         error: "Infos client, panier ou point relais manquant"
       });
     }
@@ -67,138 +117,174 @@ app.post("/create-checkout", async (req, res) => {
 
     if (!response.ok || !data.id) {
       return res.status(500).json({
+        success: false,
         error: data.message || "Erreur création paiement SumUp",
         details: data
       });
     }
 
-    const checkoutDetails = await fetch(`https://api.sumup.com/v0.1/checkouts/${data.id}`, {
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + process.env.SUMUP_API_KEY
+    const checkoutDetails = await fetch(
+      `https://api.sumup.com/v0.1/checkouts/${data.id}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + process.env.SUMUP_API_KEY
+        }
       }
-    });
+    );
 
     const checkoutData = await checkoutDetails.json();
-    console.log("CHECKOUT DETAILS:", checkoutData);
-orders[data.id] = {
-  checkout_id: data.id,
-  reference: checkoutReference,
-  amount,
-  email,
-  nom,
-  tel,
-  addr,
-  cp,
-  ville,
-  relais,
-  paid: false
-};
+
+    const orderData = {
+      checkout_id: data.id,
+      reference: checkoutReference,
+      amount: Number(amount),
+      email,
+      nom,
+      tel,
+      addr,
+      cp,
+      ville,
+      relais,
+      paid: false,
+      payment_status: "PENDING",
+      status: "NOUVELLE"
+    };
+
+    orders[data.id] = orderData;
+
     await pool.query(
-  `INSERT INTO orders 
-   (checkout_id, reference, amount, email, nom, tel, addr, cp, ville, relais, paid, payment_status)
-   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-   ON CONFLICT (checkout_id) DO NOTHING`,
-  [
-    data.id,
-    checkoutReference,
-    Number(amount),
-    email,
-    nom,
-    tel,
-    addr,
-    cp,
-    ville,
-    JSON.stringify(relais),
-    false,
-    "PENDING"
-  ]
-);
+      `
+      INSERT INTO orders
+      (
+        checkout_id,
+        reference,
+        amount,
+        email,
+        nom,
+        tel,
+        addr,
+        cp,
+        ville,
+        relais,
+        paid,
+        payment_status,
+        status
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      ON CONFLICT (checkout_id) DO NOTHING
+      `,
+      [
+        data.id,
+        checkoutReference,
+        Number(amount),
+        email,
+        nom,
+        tel,
+        addr,
+        cp,
+        ville,
+        JSON.stringify(relais),
+        false,
+        "PENDING",
+        "NOUVELLE"
+      ]
+    );
 
-console.log("COMMANDE ENREGISTRÉE EN DB :", checkoutReference);
+    console.log("COMMANDE ENREGISTRÉE :", checkoutReference);
 
-console.log("COMMANDE STOCKÉE :", orders[data.id]);
     return res.json({
+      success: true,
       url: checkoutData.hosted_checkout_url,
       checkout_id: data.id,
       reference: checkoutReference
     });
 
   } catch (err) {
+    console.error("ERREUR CREATE CHECKOUT :", err);
     return res.status(500).json({
+      success: false,
       error: err.message
     });
   }
 });
 
 /* =========================
-   CONFIRMATION COMMANDE
+   CONFIRMATION COMMANDE SIMPLE
 ========================= */
 app.post("/confirm-order", async (req, res) => {
   try {
-    console.log("CONFIRM ORDER RECU :", req.body);
-
     const { email, nom, montant } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email manquant"
+      });
+    }
 
     await resend.emails.send({
       from: "Keep Cold <contact@keepcold.fr>",
       to: email,
-      subject: "Commande confirmée ❄️",
+      subject: "Commande Keep Cold confirmée ❄️",
       html: `
-        <h2>Merci ${nom} 🙌</h2>
+        <h2>Merci ${nom || ""} 🙌</h2>
         <p>Ta commande Keep Cold est bien confirmée.</p>
-        <p><strong>Montant :</strong> ${montant} €</p>
-        <p>Nous préparons ta commande et t’enverrons le suivi très bientôt.</p>
+        <p><strong>Montant :</strong> ${montant || ""} €</p>
+        <p>Nous préparons ta commande et tu recevras le suivi dès l'expédition.</p>
       `
     });
 
-    const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(req.body)
-    });
-
-    const shipmentData = await shipmentResponse.json();
-    console.log("SHIPMENT DATA :", shipmentData);
-
     return res.json({
       success: true,
-      shipment: shipmentData
+      message: "Email confirmation envoyé"
     });
 
   } catch (err) {
     console.error("ERREUR CONFIRM ORDER :", err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
 /* =========================
-   CREATION EXPEDITION MR
+   OUTILS EXPÉDITION
+========================= */
+function cleanPhone(phone) {
+  let p = String(phone || "").replace(/\s+/g, "").replace(/\./g, "");
+  if (p.startsWith("0")) p = "+33" + p.substring(1);
+  if (!p.startsWith("+")) p = "+33" + p;
+  return p;
+}
+
+function escapeXml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/* =========================
+   CREATION EXPEDITION MONDIAL RELAY
 ========================= */
 app.post("/create-shipment", async (req, res) => {
   try {
-    const { email, nom, tel, addr, cp, ville, relais } = req.body;
+    const { email, nom, tel, addr, cp, ville, relais, reference } = req.body;
 
-    function cleanPhone(phone) {
-      let p = String(phone || "").replace(/\s+/g, "").replace(/\./g, "");
-      if (p.startsWith("0")) p = "+33" + p.substring(1);
-      if (!p.startsWith("+")) p = "+33" + p;
-      return p;
-    }
-
-    function escapeXml(value) {
-      return String(value || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&apos;");
+    if (!email || !nom || !tel || !addr || !cp || !ville) {
+      return res.status(400).json({
+        success: false,
+        error: "Infos client manquantes pour créer l'expédition"
+      });
     }
 
     const phoneClient = cleanPhone(tel);
-    const relayCode = relais?.code || "FR00001";
+    const relayCode = relais?.code || relais?.Num || relais?.num || "FR00001";
+    const orderNo = reference || "KC" + Date.now();
 
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
@@ -211,18 +297,18 @@ app.post("/create-shipment", async (req, res) => {
   </Context>
 
   <OutputOptions>
-  <OutputFormat>PDF</OutputFormat>
-  <OutputType>PdfUrl</OutputType>
-</OutputOptions>
+    <OutputFormat>PDF</OutputFormat>
+    <OutputType>PdfUrl</OutputType>
+  </OutputOptions>
 
   <ShipmentsList>
     <Shipment>
-      <OrderNo>KC${Date.now()}</OrderNo>
+      <OrderNo>${escapeXml(orderNo)}</OrderNo>
       <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
 
-      <DeliveryMode Mode="24R" Location="FR-31095" />
-    <CollectionMode Mode="REL" />
+      <DeliveryMode Mode="24R" Location="${escapeXml(relayCode)}" />
+      <CollectionMode Mode="REL" />
 
       <Parcels>
         <Parcel>
@@ -265,9 +351,9 @@ app.post("/create-shipment", async (req, res) => {
     const response = await fetch("https://connect-api.mondialrelay.com/api/Shipment", {
       method: "POST",
       headers: {
-        "Accept": "application/xml",
+        Accept: "application/xml",
         "Content-Type": "text/xml; charset=utf-8",
-        "Authorization":
+        Authorization:
           "Basic " +
           Buffer.from(
             process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
@@ -277,28 +363,26 @@ app.post("/create-shipment", async (req, res) => {
     });
 
     const text = await response.text();
-
     console.log("RÉPONSE API2 :", text);
 
-    // 🔎 Extraction du PDF base64 depuis la réponse XML
-const match = text.match(/<Output>([\s\S]*?)<\/Output>/);
+    const match = text.match(/<Output>([\s\S]*?)<\/Output>/);
 
-if (!match) {
-  return res.json({
-    success: false,
-    error: "Aucune étiquette trouvée",
-    raw: text
-  });
-}
+    if (!match) {
+      return res.json({
+        success: false,
+        error: "Aucune étiquette trouvée",
+        raw: text
+      });
+    }
 
-const base64 = match[1].trim();
+    const base64 = match[1].trim();
 
-// 📄 Envoi du PDF directement
-return res.json({
-  success: true,
-  label: base64
-});
-    
+    return res.json({
+      success: true,
+      label: base64,
+      raw: text
+    });
+
   } catch (err) {
     console.error("ERREUR CREATE SHIPMENT :", err);
     return res.status(500).json({
@@ -307,6 +391,7 @@ return res.json({
     });
   }
 });
+
 /* =========================
    RECHERCHE POINT RELAIS
 ========================= */
@@ -393,6 +478,10 @@ app.post("/mondial-relay", async (req, res) => {
     });
   }
 });
+
+/* =========================
+   VERIFICATION PAIEMENT SUMUP
+========================= */
 app.post("/verify-payment", async (req, res) => {
   try {
     const { checkout_id } = req.body;
@@ -404,27 +493,47 @@ app.post("/verify-payment", async (req, res) => {
       });
     }
 
-    const order = orders[checkout_id];
+    let order = orders[checkout_id];
 
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: "Commande introuvable sur le serveur"
-      });
+      const dbOrder = await pool.query(
+        "SELECT * FROM orders WHERE checkout_id = $1",
+        [checkout_id]
+      );
+
+      if (!dbOrder.rows.length) {
+        return res.status(404).json({
+          success: false,
+          error: "Commande introuvable"
+        });
+      }
+
+      order = dbOrder.rows[0];
     }
 
-    const response = await fetch(`https://api.sumup.com/v0.1/checkouts/${checkout_id}`, {
-      method: "GET",
-      headers: {
-        Authorization: "Bearer " + process.env.SUMUP_API_KEY
+    const response = await fetch(
+      `https://api.sumup.com/v0.1/checkouts/${checkout_id}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + process.env.SUMUP_API_KEY
+        }
       }
-    });
+    );
 
     const payment = await response.json();
-
     console.log("VERIF SUMUP :", payment);
 
     if (payment.status !== "PAID") {
+      await pool.query(
+        `
+        UPDATE orders 
+        SET payment_status = $1, updated_at = NOW()
+        WHERE checkout_id = $2
+        `,
+        [payment.status || "PENDING", checkout_id]
+      );
+
       return res.json({
         success: false,
         status: payment.status,
@@ -433,79 +542,64 @@ app.post("/verify-payment", async (req, res) => {
     }
 
     if (order.paid) {
-  console.log("COMMANDE DEJA TRAITEE :", checkout_id);
+      return res.json({
+        success: true,
+        message: "Commande déjà payée",
+        payment
+      });
+    }
 
-  return res.json({
-    success: true,
-    message: "Commande déjà traitée"
-  });
-}
-
-order.paid = true;
-console.log("ENVOI EMAIL CLIENT :", order.email);
+    await pool.query(
+      `
+      UPDATE orders
+      SET paid = true,
+          payment_status = 'PAID',
+          status = 'PAYEE',
+          updated_at = NOW()
+      WHERE checkout_id = $1
+      `,
+      [checkout_id]
+    );
 
     try {
-  await resend.emails.send({
-    from: "Keep Cold <contact@keepcold.fr>",
-    to: order.email,
-    subject: "Commande confirmée ❄️",
-    html: `
-      <h2>Merci ${order.nom} 🙌</h2>
-      <p>Ta commande Keep Cold est bien confirmée.</p>
-      <p><strong>Montant :</strong> ${order.amount}€</p>
-    `
-  });
+      await resend.emails.send({
+        from: "Keep Cold <contact@keepcold.fr>",
+        to: order.email,
+        subject: "Commande Keep Cold confirmée ❄️",
+        html: `
+          <h2>Merci ${order.nom || ""} 🙌</h2>
+          <p>Ta commande Keep Cold est bien confirmée.</p>
+          <p><strong>Montant :</strong> ${order.amount} €</p>
+          <p>Nous préparons ta commande et tu recevras le suivi dès l'expédition.</p>
+        `
+      });
+    } catch (err) {
+      console.error("ERREUR EMAIL CLIENT :", err);
+    }
 
-  console.log("EMAIL CLIENT OK");
-
-} catch (err) {
-  console.error("ERREUR EMAIL CLIENT :", err);
-}
-    
     try {
-  await resend.emails.send({
-    from: "Keep Cold <contact@keepcold.fr>",
-    to: "contact@keepcold.fr",
-    subject: "💰 Paiement confirmé Keep Cold",
-    html: `
-      <h2>Paiement confirmé</h2>
-      <p><strong>Référence :</strong> ${order.reference}</p>
-      <p><strong>Montant :</strong> ${order.amount}€</p>
-      <p><strong>Client :</strong> ${order.nom}</p>
-      <p><strong>Email :</strong> ${order.email}</p>
-    `
-  });
+      await resend.emails.send({
+        from: "Keep Cold <contact@keepcold.fr>",
+        to: "contact@keepcold.fr",
+        subject: "💰 Paiement confirmé Keep Cold",
+        html: `
+          <h2>Paiement confirmé</h2>
+          <p><strong>Référence :</strong> ${order.reference}</p>
+          <p><strong>Montant :</strong> ${order.amount} €</p>
+          <p><strong>Client :</strong> ${order.nom}</p>
+          <p><strong>Email :</strong> ${order.email}</p>
+          <p><strong>Téléphone :</strong> ${order.tel || ""}</p>
+        `
+      });
+    } catch (err) {
+      console.error("ERREUR EMAIL ADMIN :", err);
+    }
 
-  console.log("EMAIL ADMIN OK");
-
-} catch (err) {
-  console.error("ERREUR EMAIL ADMIN :", err);
-}
-
-    const shipmentResponse = await fetch("https://keepcold-server.onrender.com/create-shipment", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(order)
-});
-
-const shipmentData = await shipmentResponse.json();
-
-console.log("EXPEDITION APRES PAIEMENT :", shipmentData);
-
-if (shipmentData.success) {
-  await pool.query(
-    `UPDATE orders SET expedition_number = $1 WHERE checkout_id = $2`,
-    [shipmentData.label || "OK", checkout_id]
-  );
-}
-
-return res.json({
-  success: true,
-  payment,
-  shipment: shipmentData
-});
+    return res.json({
+      success: true,
+      payment,
+      message: "Paiement confirmé"
+    });
 
   } catch (err) {
     console.error("ERREUR VERIFY PAYMENT :", err);
@@ -515,6 +609,7 @@ return res.json({
     });
   }
 });
+
 const PORT = process.env.PORT || 3000;
 app.get("/test-db", async (req, res) => {
   try {
@@ -600,10 +695,260 @@ app.get("/admin/orders", async (req, res) => {
   }
 });
 
-app.get("/admin", async (req, res) => {
-  if (req.query.key !== process.env.ADMIN_KEY) {
-    return res.send("⛔ Accès refusé");
+/* =========================
+   ADMIN - ACTIONS COMMANDES
+========================= */
+
+app.post("/admin/pay/:id", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    await pool.query(
+      `
+      UPDATE orders
+      SET paid = true,
+          payment_status = 'PAID',
+          status = 'PAYEE',
+          updated_at = NOW()
+      WHERE id = $1
+      `,
+      [req.params.id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
+});
+
+app.post("/admin/status/:id", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const { status } = req.body;
+
+    await pool.query(
+      `
+      UPDATE orders
+      SET status = $1,
+          updated_at = NOW()
+      WHERE id = $2
+      `,
+      [status || "NOUVELLE", req.params.id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/admin/track/:id", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const { tracking } = req.body;
+
+    await pool.query(
+      `
+      UPDATE orders
+      SET expedition_number = $1,
+          status = 'EXPEDIEE',
+          updated_at = NOW()
+      WHERE id = $2
+      `,
+      [tracking, req.params.id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/admin/printed/:id", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    await pool.query(
+      `
+      UPDATE orders
+      SET printed = true,
+          status = 'IMPRIMEE',
+          updated_at = NOW()
+      WHERE id = $1
+      `,
+      [req.params.id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* =========================
+   ADMIN - GENERER ETIQUETTE SOLO
+========================= */
+app.post("/admin/generate-label/:id", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM orders WHERE id = $1",
+      [req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Commande introuvable"
+      });
+    }
+
+    const order = result.rows[0];
+
+    if (!order.paid) {
+      return res.json({
+        success: false,
+        error: "Commande non payée"
+      });
+    }
+
+    const shipmentResponse = await fetch(
+      "https://keepcold-server.onrender.com/create-shipment",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(order)
+      }
+    );
+
+    const shipmentData = await shipmentResponse.json();
+
+    if (!shipmentData.success) {
+      return res.json(shipmentData);
+    }
+
+    await pool.query(
+      `
+      UPDATE orders
+      SET expedition_number = $1,
+          status = 'ETIQUETTE',
+          updated_at = NOW()
+      WHERE id = $2
+      `,
+      [shipmentData.label, req.params.id]
+    );
+
+    res.json({
+      success: true,
+      label: shipmentData.label
+        
+/* =========================
+   ADMIN - ACTIONS EN MASSE
+========================= */
+app.post("/admin/bulk-status", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const { ids, status } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.json({
+        success: false,
+        error: "Aucune commande sélectionnée"
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE orders
+      SET status = $1,
+          updated_at = NOW()
+      WHERE id = ANY($2::int[])
+      `,
+      [status || "NOUVELLE", ids]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+app.post("/admin/bulk-printed", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.json({
+        success: false,
+        error: "Aucune commande sélectionnée"
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE orders
+      SET printed = true,
+          status = 'IMPRIMEE',
+          updated_at = NOW()
+      WHERE id = ANY($1::int[])
+      `,
+      [ids]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+app.post("/admin/bulk-shipped", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.json({
+        success: false,
+        error: "Aucune commande sélectionnée"
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE orders
+      SET status = 'EXPEDIEE',
+          updated_at = NOW()
+      WHERE id = ANY($1::int[])
+      `,
+      [ids]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+     
+    app.get("/admin", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
 
   try {
     const result = await pool.query(`
@@ -616,54 +961,45 @@ app.get("/admin", async (req, res) => {
     const totalCA = orders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
     const totalPaid = orders.filter(o => o.paid).length;
     const totalPending = orders.filter(o => !o.paid).length;
+    const totalLabels = orders.filter(o => o.expedition_number).length;
 
     let rows = orders.map(o => {
       const relais = o.relais || {};
-      const date = o.created_at ? new Date(o.created_at).toLocaleString("fr-FR") : "-";
+      const date = o.created_at
+        ? new Date(o.created_at).toLocaleString("fr-FR")
+        : "-";
+
+      const status = o.status || "NOUVELLE";
 
       return `
         <tr>
-          <td>
-            <strong>#${o.id}</strong><br>
-            <small>${o.reference || "-"}</small>
-          </td>
+          <td><input type="checkbox" class="order-check" value="${o.id}"></td>
+          <td><strong>#${o.id}</strong><br><small>${o.reference || "-"}</small></td>
           <td>${date}</td>
+          <td><strong>${o.nom || "-"}</strong><br><small>${o.email || "-"}</small><br><small>${o.tel || "-"}</small></td>
+          <td>${o.addr || "-"}<br><small>${o.cp || ""} ${o.ville || ""}</small></td>
           <td>
-            <strong>${o.nom || "-"}</strong><br>
-            <small>${o.email || "-"}</small><br>
-            <small>${o.tel || "-"}</small>
-          </td>
-          <td>
-            ${o.addr || "-"}<br>
-            <small>${o.cp || ""} ${o.ville || ""}</small>
-          </td>
-          <td>
-            <strong>${relais.nom || "-"}</strong><br>
-            <small>${relais.adresse || ""}</small><br>
-            <small>${relais.code || ""}</small>
+            <strong>${relais.nom || relais.Name || "-"}</strong><br>
+            <small>${relais.adresse || relais.Address || ""}</small><br>
+            <small>${relais.code || relais.Num || ""}</small>
           </td>
           <td><strong>${o.amount || "0"} €</strong></td>
-          <td>
-            <span class="badge ${o.paid ? "paid" : "pending"}">
-              ${o.paid ? "PAYÉ" : (o.payment_status || "PENDING")}
-            </span>
-          </td>
-          <td>${o.expedition_number || "-"}</td>
+          <td><span class="badge ${o.paid ? "paid" : "pending"}">${o.paid ? "PAYÉ" : (o.payment_status || "PENDING")}</span></td>
+          <td><span class="status ${status.toLowerCase()}">${status}</span>${o.printed ? `<br><small>🖨️ Imprimée</small>` : ""}</td>
+          <td>${o.expedition_number ? `<a class="label-btn" href="/label/${o.checkout_id}?key=${req.query.key}" target="_blank">🧾 Étiquette</a>` : "-"}</td>
           <td class="actions">
-  <button onclick="markPaid(${o.id})">✅ Payé</button>
-  <button onclick="addTracking(${o.id})">📦 Suivi</button>
-  ${o.expedition_number && o.expedition_number !== "-" ? `
-    <a class="label-btn" href="/label/${o.checkout_id}?key=${req.query.key}" target="_blank">
-      🧾 Étiquette
-    </a>
-  ` : ""}
-</td>
+            <button onclick="markPaid(${o.id})">✅ Payé</button>
+            <button onclick="generateLabel(${o.id})">🧾 Étiquette</button>
+            <button onclick="setStatus(${o.id}, 'PREPARATION')">📦 Prépa</button>
+            <button onclick="setStatus(${o.id}, 'EXPEDIEE')">🚚 Expédiée</button>
+            <button onclick="addTracking(${o.id})">🔢 Suivi</button>
+          </td>
         </tr>
       `;
     }).join("");
 
     if (!rows) {
-      rows = `<tr><td colspan="9" class="empty">Aucune commande pour le moment.</td></tr>`;
+      rows = `<tr><td colspan="11" class="empty">Aucune commande pour le moment.</td></tr>`;
     }
 
     res.send(`
@@ -678,14 +1014,14 @@ app.get("/admin", async (req, res) => {
   body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: linear-gradient(180deg, #e8f8ff, #f7fdff);
+    background: #eefaff;
     color: #102033;
   }
 
   header {
     background: linear-gradient(135deg, #0077b6, #00c2ff);
     color: white;
-    padding: 28px 20px 34px;
+    padding: 26px 18px 32px;
     border-bottom-left-radius: 28px;
     border-bottom-right-radius: 28px;
     box-shadow: 0 8px 22px rgba(0,119,182,0.25);
@@ -693,78 +1029,82 @@ app.get("/admin", async (req, res) => {
 
   header h1 {
     margin: 0;
-    font-size: 30px;
+    font-size: 28px;
   }
 
   header p {
-    margin: 8px 0 0;
+    margin: 7px 0 0;
     opacity: 0.95;
-    font-size: 16px;
   }
 
   .container {
-    padding: 18px;
+    padding: 16px;
   }
 
   .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-top: -8px;
-    margin-bottom: 18px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   .card {
     background: white;
-    padding: 18px;
-    border-radius: 20px;
+    padding: 16px;
+    border-radius: 18px;
     box-shadow: 0 8px 22px rgba(0,0,0,0.08);
   }
 
   .card small {
     color: #64748b;
-    font-size: 14px;
   }
 
   .card strong {
     display: block;
-    margin-top: 8px;
-    font-size: 28px;
+    margin-top: 7px;
+    font-size: 25px;
   }
 
   .toolbar {
     display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
+    gap: 9px;
     flex-wrap: wrap;
+    margin-bottom: 14px;
   }
 
   .btn {
     background: #0077b6;
     color: white;
-    padding: 11px 15px;
-    border-radius: 14px;
+    padding: 10px 13px;
+    border-radius: 13px;
     border: none;
     text-decoration: none;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 5px 14px rgba(0,119,182,0.22);
   }
 
-  .btn.secondary {
+  .btn.dark {
     background: #023047;
+  }
+
+  .btn.green {
+    background: #047857;
+  }
+
+  .btn.orange {
+    background: #c2410c;
   }
 
   .table-box {
     background: white;
-    border-radius: 22px;
+    border-radius: 20px;
     overflow-x: auto;
     box-shadow: 0 8px 22px rgba(0,0,0,0.08);
   }
 
   table {
     width: 100%;
-    min-width: 1150px;
+    min-width: 1350px;
     border-collapse: collapse;
   }
 
@@ -772,13 +1112,13 @@ app.get("/admin", async (req, res) => {
     background: #023047;
     color: white;
     text-align: left;
-    padding: 15px;
+    padding: 13px;
     font-size: 13px;
     white-space: nowrap;
   }
 
   td {
-    padding: 14px;
+    padding: 12px;
     border-bottom: 1px solid #e5eef5;
     vertical-align: top;
     font-size: 14px;
@@ -792,9 +1132,10 @@ app.get("/admin", async (req, res) => {
     color: #64748b;
   }
 
-  .badge {
+  .badge,
+  .status {
     display: inline-block;
-    padding: 7px 11px;
+    padding: 7px 10px;
     border-radius: 999px;
     font-size: 12px;
     font-weight: bold;
@@ -810,35 +1151,60 @@ app.get("/admin", async (req, res) => {
     color: #c2410c;
   }
 
+  .nouvelle {
+    background: #e0f2fe;
+    color: #075985;
+  }
+
+  .payee {
+    background: #d1fae5;
+    color: #047857;
+  }
+
+  .etiquette {
+    background: #ede9fe;
+    color: #6d28d9;
+  }
+
+  .imprimee {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .preparation {
+    background: #ccfbf1;
+    color: #0f766e;
+  }
+
+  .expediee {
+    background: #dcfce7;
+    color: #166534;
+  }
+
   .actions {
     display: flex;
-    gap: 6px;
     flex-direction: column;
+    gap: 6px;
   }
 
-.actions button {
-  border: none;
-  border-radius: 10px;
-  padding: 8px 10px;
-  cursor: pointer;
-  font-weight: bold;
-  background: #e0f2fe;
-  color: #075985;
-}
-
-.label-btn {
-  text-align: center;
-  text-decoration: none;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-weight: bold;
-  background: #d1fae5;
-  color: #047857;
-}
+  .actions button,
+  .label-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    text-align: center;
+    background: #e0f2fe;
+    color: #075985;
+    font-size: 13px;
   }
 
-  .actions button:hover {
-    opacity: 0.8;
+  .label-btn {
+    display: inline-block;
+    background: #d1fae5;
+    color: #047857;
   }
 
   .empty {
@@ -848,16 +1214,12 @@ app.get("/admin", async (req, res) => {
   }
 
   @media (max-width: 700px) {
-    header h1 {
-      font-size: 24px;
-    }
-
     .stats {
       grid-template-columns: 1fr;
     }
 
-    .container {
-      padding: 14px;
+    header h1 {
+      font-size: 23px;
     }
   }
 </style>
@@ -867,7 +1229,7 @@ app.get("/admin", async (req, res) => {
 
 <header>
   <h1>Admin Keep Cold ❄️</h1>
-  <p>Tableau de bord des commandes</p>
+  <p>Gestion des commandes (mode pro)</p>
 </header>
 
 <div class="container">
@@ -879,7 +1241,7 @@ app.get("/admin", async (req, res) => {
     </div>
 
     <div class="card">
-      <small>Commandes payées</small>
+      <small>Payées</small>
       <strong>${totalPaid}</strong>
     </div>
 
@@ -887,25 +1249,34 @@ app.get("/admin", async (req, res) => {
       <small>CA total</small>
       <strong>${totalCA.toFixed(2)} €</strong>
     </div>
+
+    <div class="card">
+      <small>Étiquettes</small>
+      <strong>${totalLabels}</strong>
+    </div>
   </div>
 
   <div class="toolbar">
-    <a class="btn" href="/admin?key=${req.query.key}">🔄 Actualiser</a>
-    <button class="btn secondary" onclick="exportCSV()">📊 Export CSV</button>
+    <button class="btn" onclick="bulkLabel()">🧾 Générer étiquettes</button>
+    <button class="btn green" onclick="bulkPrinted()">🖨️ Marquer imprimé</button>
+    <button class="btn orange" onclick="bulkShipped()">🚚 Expédier</button>
+    <button class="btn dark" onclick="exportCSV()">📊 Export CSV</button>
   </div>
 
   <div class="table-box">
     <table>
       <thead>
         <tr>
-          <th>ID / Référence</th>
+          <th></th>
+          <th>ID</th>
           <th>Date</th>
           <th>Client</th>
           <th>Adresse</th>
-          <th>Point relais</th>
+          <th>Relais</th>
           <th>Montant</th>
           <th>Paiement</th>
-          <th>Suivi MR</th>
+          <th>Status</th>
+          <th>Étiquette</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -918,19 +1289,42 @@ app.get("/admin", async (req, res) => {
 </div>
 
 <script>
-async function generateLabel(id) {
-  const key = new URLSearchParams(window.location.search).get('key');
+const key = new URLSearchParams(window.location.search).get("key");
 
-  if (!confirm("Générer une étiquette ?")) return;
+function selectedIds() {
+  return [...document.querySelectorAll(".order-check:checked")]
+    .map(cb => Number(cb.value));
+}
 
-  const res = await fetch('/admin/generate-label/' + id + '?key=' + key, {
-    method: 'POST'
+async function postJSON(url, body = {}) {
+  const res = await fetch(url + "?key=" + key, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
   });
 
-  const data = await res.json();
+  return await res.json();
+}
+
+async function markPaid(id) {
+  if (!confirm("Marquer cette commande comme payée ?")) return;
+
+  await postJSON("/admin/pay/" + id);
+  location.reload();
+}
+
+async function setStatus(id, status) {
+  await postJSON("/admin/status/" + id, { status });
+  location.reload();
+}
+
+async function generateLabel(id) {
+  if (!confirm("Générer l'étiquette de cette commande ?")) return;
+
+  const data = await postJSON("/admin/generate-label/" + id);
 
   if (!data.success) {
-    alert(data.error || "Erreur");
+    alert(data.error || "Erreur étiquette");
     return;
   }
 
@@ -938,33 +1332,76 @@ async function generateLabel(id) {
   location.reload();
 }
 
-async function markPaid(id) {
-  await fetch('/admin/pay/' + id, { method: 'POST' });
+async function addTracking(id) {
+  const tracking = prompt("Numéro de suivi ou info expédition :");
+  if (!tracking) return;
+
+  await postJSON("/admin/track/" + id, { tracking });
   location.reload();
 }
 
-async function addTracking(id) {
-  const tracking = prompt("Numéro de suivi Mondial Relay");
-  if (!tracking) return;
+async function bulkLabel() {
+  const ids = selectedIds();
 
-  await fetch('/admin/track/' + id, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tracking })
-  });
+  if (!ids.length) {
+    alert("Sélectionne au moins une commande.");
+    return;
+  }
 
+  if (!confirm("Générer les étiquettes pour les commandes sélectionnées ?")) return;
+
+  const data = await postJSON("/admin/bulk-generate-labels", { ids });
+
+  if (!data.success) {
+    alert(data.error || "Erreur génération en masse");
+    return;
+  }
+
+  alert("Terminé. OK : " + data.done.length + " / Erreurs : " + data.errors.length);
+  location.reload();
+}
+
+async function bulkPrinted() {
+  const ids = selectedIds();
+
+  if (!ids.length) {
+    alert("Sélectionne au moins une commande.");
+    return;
+  }
+
+  await postJSON("/admin/bulk-printed", { ids });
+  location.reload();
+}
+
+async function bulkShipped() {
+  const ids = selectedIds();
+
+  if (!ids.length) {
+    alert("Sélectionne au moins une commande.");
+    return;
+  }
+
+  if (!confirm("Marquer ces commandes comme expédiées ?")) return;
+
+  await postJSON("/admin/bulk-shipped", { ids });
   location.reload();
 }
 
 function exportCSV() {
   let csv = [];
+
   document.querySelectorAll("table tr").forEach(row => {
     let cols = row.querySelectorAll("td, th");
-    let data = [...cols].map(c => '"' + c.innerText.replace(/"/g, '""') + '"');
+    let data = [...cols].map(c => {
+      return '"' + c.innerText.replace(/"/g, '""') + '"';
+    });
     csv.push(data.join(";"));
   });
 
-  let blob = new Blob(["\\ufeff" + csv.join("\\n")], { type: "text/csv;charset=utf-8;" });
+  let blob = new Blob(["\ufeff" + csv.join("\n")], {
+    type: "text/csv;charset=utf-8;"
+  });
+
   let a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "commandes-keepcold.csv";
@@ -981,7 +1418,7 @@ function exportCSV() {
     res.send("Erreur admin : " + err.message);
   }
 });
-app.get("/test-shipment", async (req, res) => {
+    app.get("/test-shipment", async (req, res) => {
   try {
     const fakeOrder = {
       email: "test@test.com",
