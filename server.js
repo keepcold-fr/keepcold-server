@@ -345,7 +345,7 @@ const weight = 1500; // 1.5 kg SAFE
         <Address>
           <Firstname>${escapeXml(nom || "Client")}</Firstname>
           <Lastname>KeepCold</Lastname>
-          <Streetname>${escapeXml(adresse)}</Streetname>
+          <Streetname>${escapeXml(addr)}</Streetname>
           <CountryCode>FR</CountryCode>
           <PostCode>${escapeXml(cp)}</PostCode>
           <City>${escapeXml(ville)}</City>
