@@ -345,7 +345,7 @@ const weight = 1500; // 1.5 kg SAFE
         <Address>
           <Firstname>${escapeXml(nom || "Client")}</Firstname>
           <Lastname>KeepCold</Lastname>
-          <Streetname>${escapeXml(addr)}</Streetname>
+          <Streetname>${escapeXml(adresse)}</Streetname>
           <CountryCode>FR</CountryCode>
           <PostCode>${escapeXml(cp)}</PostCode>
           <City>${escapeXml(ville)}</City>
@@ -353,10 +353,11 @@ const weight = 1500; // 1.5 kg SAFE
           <Email>${escapeXml(email)}</Email>
         </Address>
       </Recipient>
+
     </Shipment>
   </ShipmentsList>
 </ShipmentCreationRequest>`;
-
+    
     console.log("XML ENVOYÉ API2 :", xml);
 
     const response = await fetch("https://connect-api.mondialrelay.com/api/Shipment", {
