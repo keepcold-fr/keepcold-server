@@ -1501,7 +1501,7 @@ function exportCSV() {
     csv.push(data.join(";"));
   });
 
-  let blob = new Blob(["\ufeff" + csv.join("\n")], {
+  let blob = new Blob([String.fromCharCode(65279) + csv.join(String.fromCharCode(10))], {
     type: "text/csv;charset=utf-8;"
   });
 
@@ -1510,6 +1510,7 @@ function exportCSV() {
   a.download = "commandes-keepcold.csv";
   a.click();
 }
+
 </script>
 
 </body>
