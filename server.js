@@ -283,9 +283,18 @@ app.post("/create-shipment", async (req, res) => {
     }
 
     const phoneClient = cleanPhone(tel);
-    const relayCode = relais?.code || relais?.Num || relais?.num || "FR00001";
-    const orderNo = reference || "KC" + Date.now();
+    let relayCode = relais?.code || relais?.Num || relais?.num || "";
 
+if (relayCode && !String(relayCode).startsWith("FR-")) {
+  relayCode = "FR-" + relayCode;
+}
+
+if (!relayCode) {
+  return res.json({
+    success: false,
+    error: "Code point relais manquant"
+  });
+}
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
