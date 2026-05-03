@@ -844,10 +844,17 @@ app.post("/admin/generate-label/:id", async (req, res) => {
     );
 
     res.json({
-      success: true,
-      label: shipmentData.label
-      
-        });
+  success: true,
+  label: shipmentData.label
+});
+
+} catch (err) {
+  res.status(500).json({
+    success: false,
+    error: err.message
+  });
+}
+});
     
 /* =========================
    ADMIN - ACTIONS EN MASSE
