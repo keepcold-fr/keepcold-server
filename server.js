@@ -295,6 +295,7 @@ if (!relayCode) {
     error: "Code point relais manquant"
   });
 }
+    const orderNo = reference || "KC-" + Date.now();
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
