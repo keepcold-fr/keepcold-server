@@ -296,6 +296,7 @@ if (!relayCode) {
   });
 }
     const orderNo = reference || "KC-" + Date.now();
+const weight = 1200;
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
@@ -323,7 +324,7 @@ if (!relayCode) {
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight Value="5.1" Unit="kg" />
+          <Weight Value="${weight}" Unit="g" />
         </Parcel>
       </Parcels>
 
