@@ -285,8 +285,6 @@ app.post("/create-shipment", async (req, res) => {
     const phoneClient = cleanPhone(tel);
     let relayCode = relais?.code || relais?.Num || relais?.num || "";
 
-}
-
 if (!relayCode) {
   return res.json({
     success: false,
