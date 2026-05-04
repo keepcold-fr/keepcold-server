@@ -356,7 +356,8 @@ const weight = 1500; // 1.5 kg SAFE
 
     </Shipment>
   </ShipmentsList>
-<ShipmentCreationRequest xmlns="http://www.example.org/Request">
+</ShipmentCreationRequest>`;
+    
     console.log("XML ENVOYÉ API2 :", xml);
 
     const response = await fetch("https://connect-api.mondialrelay.com/api/Shipment", {
