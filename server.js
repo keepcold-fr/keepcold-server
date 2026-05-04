@@ -1593,6 +1593,18 @@ app.get("/label/:checkout_id", async (req, res) => {
   res.setHeader("Content-Type", "application/pdf");
   res.send(Buffer.from(base64, "base64"));
 });
+app.get("/fix-db", async (req, res) => {
+  try {
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'NOUVELLE'`);
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS expedition_number TEXT`);
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`);
+
+    res.json({ success: true, message: "DB réparée" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
