@@ -285,12 +285,16 @@ app.post("/create-shipment", async (req, res) => {
     const phoneClient = cleanPhone(tel);
     let relayCode = relais?.code || relais?.Num || relais?.num || "";
 
+relayCode = String(relayCode).replace("FR-", "").replace("FR", "");
+
 if (!relayCode) {
   return res.json({
     success: false,
     error: "Code point relais manquant"
   });
 }
+
+relayCode = "FR" + relayCode;
     const orderNo = Date.now().toString();
 const weight = 2000
     const xml = `<?xml version="1.0" encoding="utf-8"?>
