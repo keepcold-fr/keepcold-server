@@ -919,70 +919,7 @@ app.post("/admin/bulk-generate-labels", async (req, res) => {
           continue;
         }
 
-        const order = result.rows[0];
-
-        if (!order.paid) {
-          errors.push({ id, error: "Commande non payée" });
-          continue;
-        }
-
-        if (order.expedition_number) {
-          done.push({ id, message: "Étiquette déjà existante" });
-          continue;
-        }
-
-        const shipmentResponse = await fetch(
-          "https://keepcold-server.onrender.com/create-shipment",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(order)
-          }
-        );
-
-        const shipmentData = await shipmentResponse.json();
-
-        if (!shipmentData.success) {
-          errors.push({
-            id,
-            error: shipmentData.error || "Erreur création étiquette"
-          });
-          continue;
-        }
-
-        await pool.query(
-          `
-          UPDATE orders
-SET expedition_number = $1,
-    label_url = $2,
-    status = 'ETIQUETTE',
-    updated_at = NOW()
-WHERE id = $3
-          `,
-          [shipmentData.label || null, shipmentData.label_url || null, req.params.id]
-        );
-
-        done.push({ id, message: "Étiquette créée" });
-
-      } catch (err) {
-        errors.push({ id, error: err.message });
-      }
-    }
-
-    res.json({
-      success: true,
-      done,
-      errors
-    });
-
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
-});
-
+        
 /* =========================
    ADMIN - ACTIONS EN MASSE
 ========================= */
