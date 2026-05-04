@@ -296,7 +296,7 @@ if (!relayCode) {
   });
 }
     const orderNo = Date.now().toString();
-const weight = 2.00
+const weight = 2000
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
@@ -308,8 +308,8 @@ const weight = 2.00
   </Context>
 
   <OutputOptions>
-  <OutputFormat>A4</OutputFormat>
-  <OutputType>Pdf</OutputType>
+  <OutputFormat>PDF</OutputFormat>
+  <OutputType>PdfUrl</OutputType>
 </OutputOptions>
 
   <ShipmentsList>
