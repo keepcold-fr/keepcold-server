@@ -390,11 +390,10 @@ const weight = 2000
     const base64 = match[1].trim();
 
     return res.json({
-  success: true,
-  label: base64,
-  label_url: base64 && base64.startsWith("http") ? base64 : null,
-  raw: text
-});
+      success: true,
+      label: base64,
+      raw: text
+    });
 
   } catch (err) {
     console.error("ERREUR CREATE SHIPMENT :", err);
@@ -805,38 +804,21 @@ app.post("/admin/printed/:id", async (req, res) => {
 /* =========================
    ADMIN - GENERER ETIQUETTE SOLO
 ========================= */
-app.get("/label/:checkout_id", async (req, res) => {
-  if (req.query.key !== process.env.ADMIN_KEY) {
-    return res.send("⛔ Accès refusé");
-  }
+app.post("/admin/generate-label/:id", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
 
-  const result = await pool.query(
-    "SELECT expedition_number, label_url FROM orders WHERE checkout_id = $1",
-    [req.params.checkout_id]
-  );
+  try {
+    const result = await pool.query(
+      "SELECT * FROM orders WHERE id = $1",
+      [req.params.id]
+    );
 
-  if (!result.rows.length) {
-    return res.send("Commande introuvable");
-  }
-
-  const labelUrl = result.rows[0].label_url;
-  const base64 = result.rows[0].expedition_number;
-
-  if (labelUrl) {
-    return res.redirect(labelUrl);
-  }
-
-  if (!base64 || base64 === "OK") {
-    return res.send("Étiquette non disponible");
-  }
-
-  if (base64.startsWith("http")) {
-    return res.redirect(base64);
-  }
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.send(Buffer.from(base64, "base64"));
-});
+    if (!result.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Commande introuvable"
+      });
+    }
 
     const order = result.rows[0];
 
@@ -919,7 +901,69 @@ app.post("/admin/bulk-generate-labels", async (req, res) => {
           continue;
         }
 
-        
+        const order = result.rows[0];
+
+        if (!order.paid) {
+          errors.push({ id, error: "Commande non payée" });
+          continue;
+        }
+
+        if (order.expedition_number) {
+          done.push({ id, message: "Étiquette déjà existante" });
+          continue;
+        }
+
+        const shipmentResponse = await fetch(
+          "https://keepcold-server.onrender.com/create-shipment",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(order)
+          }
+        );
+
+        const shipmentData = await shipmentResponse.json();
+
+        if (!shipmentData.success) {
+          errors.push({
+            id,
+            error: shipmentData.error || "Erreur création étiquette"
+          });
+          continue;
+        }
+
+        await pool.query(
+          `
+          UPDATE orders
+          SET expedition_number = $1,
+              status = 'ETIQUETTE',
+              updated_at = NOW()
+          WHERE id = $2
+          `,
+          [shipmentData.label, id]
+        );
+
+        done.push({ id, message: "Étiquette créée" });
+
+      } catch (err) {
+        errors.push({ id, error: err.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      done,
+      errors
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
 /* =========================
    ADMIN - ACTIONS EN MASSE
 ========================= */
@@ -1555,8 +1599,7 @@ app.get("/fix-db", async (req, res) => {
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed BOOLEAN DEFAULT false`);
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS expedition_number TEXT`);
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`);
-    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS label_url TEXT`);
-   
+
     res.json({ success: true, message: "DB réparée" });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
