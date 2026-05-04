@@ -296,7 +296,7 @@ if (!relayCode) {
   });
 }
     const orderNo = Date.now().toString();
-const weight = 2
+const weight = 2.00
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
