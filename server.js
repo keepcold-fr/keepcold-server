@@ -318,7 +318,7 @@ const weight = 2000
       <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
 
-      <DeliveryMode Mode="24R" Location="${escapeXml(relayCode)}" />
+      <DeliveryMode Mode="24R" Location="003678" />
       <CollectionMode Mode="CCC" />
 
       <Parcels>
