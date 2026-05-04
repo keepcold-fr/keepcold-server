@@ -295,8 +295,8 @@ if (!relayCode) {
     error: "Code point relais manquant"
   });
 }
-    const orderNo = reference || "KC-" + Date.now();
-const weight = 1.5; // 1.5 kg SAFE
+    const orderNo = Date.now().toString();
+const weight = 1500
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
@@ -308,9 +308,9 @@ const weight = 1.5; // 1.5 kg SAFE
   </Context>
 
   <OutputOptions>
-    <OutputFormat>PDF</OutputFormat>
-    <OutputType>PDF</OutputType>
-  </OutputOptions>
+  <OutputFormat>A4</OutputFormat>
+  <OutputType>Pdf</OutputType>
+</OutputOptions>
 
   <ShipmentsList>
     <Shipment>
@@ -324,7 +324,7 @@ const weight = 1.5; // 1.5 kg SAFE
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight>${weight}</Weight>
+          <Weight>1500</Weight>
         </Parcel>
       </Parcels>
 
