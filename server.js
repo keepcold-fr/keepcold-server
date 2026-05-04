@@ -390,10 +390,11 @@ const weight = 2000
     const base64 = match[1].trim();
 
     return res.json({
-      success: true,
-      label: base64,
-      raw: text
-    });
+  success: true,
+  label: base64,
+  label_url: base64 && base64.startsWith("http") ? base64 : null,
+  raw: text
+});
 
   } catch (err) {
     console.error("ERREUR CREATE SHIPMENT :", err);
@@ -804,21 +805,38 @@ app.post("/admin/printed/:id", async (req, res) => {
 /* =========================
    ADMIN - GENERER ETIQUETTE SOLO
 ========================= */
-app.post("/admin/generate-label/:id", async (req, res) => {
-  if (!checkAdmin(req, res)) return;
+app.get("/label/:checkout_id", async (req, res) => {
+  if (req.query.key !== process.env.ADMIN_KEY) {
+    return res.send("⛔ Accès refusé");
+  }
 
-  try {
-    const result = await pool.query(
-      "SELECT * FROM orders WHERE id = $1",
-      [req.params.id]
-    );
+  const result = await pool.query(
+    "SELECT expedition_number, label_url FROM orders WHERE checkout_id = $1",
+    [req.params.checkout_id]
+  );
 
-    if (!result.rows.length) {
-      return res.status(404).json({
-        success: false,
-        error: "Commande introuvable"
-      });
-    }
+  if (!result.rows.length) {
+    return res.send("Commande introuvable");
+  }
+
+  const labelUrl = result.rows[0].label_url;
+  const base64 = result.rows[0].expedition_number;
+
+  if (labelUrl) {
+    return res.redirect(labelUrl);
+  }
+
+  if (!base64 || base64 === "OK") {
+    return res.send("Étiquette non disponible");
+  }
+
+  if (base64.startsWith("http")) {
+    return res.redirect(base64);
+  }
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.send(Buffer.from(base64, "base64"));
+});
 
     const order = result.rows[0];
 
@@ -935,12 +953,13 @@ app.post("/admin/bulk-generate-labels", async (req, res) => {
         await pool.query(
           `
           UPDATE orders
-          SET expedition_number = $1,
-              status = 'ETIQUETTE',
-              updated_at = NOW()
-          WHERE id = $2
+SET expedition_number = $1,
+    label_url = $2,
+    status = 'ETIQUETTE',
+    updated_at = NOW()
+WHERE id = $3
           `,
-          [shipmentData.label, id]
+          [shipmentData.label || null, shipmentData.label_url || null, req.params.id]
         );
 
         done.push({ id, message: "Étiquette créée" });
@@ -1599,7 +1618,8 @@ app.get("/fix-db", async (req, res) => {
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS printed BOOLEAN DEFAULT false`);
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS expedition_number TEXT`);
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`);
-
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS label_url TEXT`);
+   
     res.json({ success: true, message: "DB réparée" });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
