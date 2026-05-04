@@ -285,8 +285,6 @@ app.post("/create-shipment", async (req, res) => {
     const phoneClient = cleanPhone(tel);
     let relayCode = relais?.code || relais?.Num || relais?.num || "";
 
-if (relayCode && !String(relayCode).startsWith("FR-")) {
-  relayCode = "FR-" + relayCode;
 }
 
 if (!relayCode) {
@@ -318,7 +316,7 @@ const weight = 2000
       <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
 
-      <DeliveryMode Mode="24R" Location="003678" />
+      <DeliveryMode Mode="24R" Location="${escapeXml(relayCode)}" />
       <CollectionMode Mode="CCC" />
 
       <Parcels>
