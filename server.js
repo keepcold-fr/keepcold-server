@@ -1169,7 +1169,7 @@ app.post("/admin/bulk-shipped", async (req, res) => {
             <button onclick="markPaid(${o.id})">✅ Payé</button>
             <button onclick="generateLabel(${o.id})">🧾 Étiquette</button>
             <button onclick="setStatus(${o.id}, 'PREPARATION')">📦 Prépa</button>
-            <button onclick="setStatus(${o.id}, 'EXPEDIEE')">🚚 Expédiée</button>
+            <button onclick="shipOrder(${o.id})">🚚 Expédiée</button>
             <button onclick="addTracking(${o.id})">🔢 Suivi</button>
           </td>
         </tr>
@@ -1488,6 +1488,18 @@ async function markPaid(id) {
   if (!confirm("Marquer cette commande comme payée ?")) return;
 
   await postJSON("/admin/pay/" + id);
+  location.reload();
+}
+async function shipOrder(id) {
+  if (!confirm("Marquer cette commande comme expédiée ?")) return;
+
+  const data = await postJSON("/admin/ship/" + id);
+
+  if (!data.success) {
+    alert(data.error || "Erreur expédition");
+    return;
+  }
+
   location.reload();
 }
 
