@@ -59,7 +59,10 @@ app.get("/init-db", async (req, res) => {
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
-
+    
+await pool.query(`
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS label_url TEXT
+`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
