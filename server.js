@@ -1588,15 +1588,23 @@ app.get("/label/:checkout_id", async (req, res) => {
   }
 
   const result = await pool.query(
-    "SELECT expedition_number FROM orders WHERE checkout_id = $1",
-    [req.params.checkout_id]
-  );
+  "SELECT expedition_number, label_url FROM orders WHERE checkout_id = $1",
+  [req.params.checkout_id]
+);
 
   if (!result.rows.length) {
     return res.send("Commande introuvable");
   }
 
-  const base64 = result.rows[0].expedition_number;
+  const row = result.rows[0];
+const base64 = row.expedition_number;
+const labelUrl = row.label_url;
+
+  // 🔥 PRIORITÉ AU PDF DIRECT
+if (labelUrl) {
+  console.log("Redirection PDF :", labelUrl);
+  return res.redirect(labelUrl);
+}
 
   if (!base64 || base64 === "OK") {
     return res.send("Étiquette non disponible");
