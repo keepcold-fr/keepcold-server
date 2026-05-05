@@ -760,6 +760,55 @@ app.post("/admin/status/:id", async (req, res) => {
   }
 });
 
+app.post("/admin/ship/:id", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM orders WHERE id = $1",
+      [req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.json({ success: false, error: "Commande introuvable" });
+    }
+
+    const order = result.rows[0];
+
+    await pool.query(
+      `
+      UPDATE orders
+      SET status = 'EXPEDIEE',
+          updated_at = NOW()
+      WHERE id = $1
+      `,
+      [req.params.id]
+    );
+
+    try {
+      await resend.emails.send({
+        from: "Keep Cold <contact@keepcold.fr>",
+        to: order.email,
+        subject: "Votre commande Keep Cold est expédiée ❄️",
+        html: `
+          <h2>Bonne nouvelle ${order.nom || ""} 🙌</h2>
+          <p>Votre commande Keep Cold a été expédiée.</p>
+          <p><strong>Référence commande :</strong> ${order.reference || "-"}</p>
+          <p><strong>Numéro de suivi :</strong> ${order.expedition_number || "Suivi en cours de mise à jour"}</p>
+          <p>Merci pour votre commande ❄️</p>
+        `
+      });
+    } catch (mailErr) {
+      console.error("Erreur email expédition :", mailErr);
+    }
+
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post("/admin/track/:id", async (req, res) => {
   if (!checkAdmin(req, res)) return;
 
