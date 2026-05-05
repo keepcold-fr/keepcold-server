@@ -842,6 +842,15 @@ app.post("/admin/generate-label/:id", async (req, res) => {
 
     const shipmentData = await shipmentResponse.json();
 
+    // 🔍 récupérer URL PDF si dispo
+const pdfMatch = text.match(/<URL_Pdf>(.*?)<\/URL_Pdf>/);
+
+let pdfUrl = null;
+
+if (pdfMatch) {
+  pdfUrl = pdfMatch[1];
+  console.log("PDF trouvé :", pdfUrl);
+                         }
     if (!shipmentData.success) {
       return res.json(shipmentData);
     }
