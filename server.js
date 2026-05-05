@@ -322,7 +322,7 @@ const weight = 2000
       <ParcelCount>1</ParcelCount>
 
       <DeliveryMode Mode="24R" Location="FR-${relais.code}" />
-      <CollectionMode Mode="CCC" />
+      <CollectionMode Mode="REL" />
 
       <Parcels>
         <Parcel>
