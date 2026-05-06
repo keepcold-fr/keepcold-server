@@ -1795,8 +1795,8 @@ cle;
       <TRDV>${data.TRDV}</TRDV>
       <Assurance>${data.Assurance}</Assurance>
       <Instructions>${data.Instructions}</Instructions>
-      <Security>${security}</Security>
       <Texte>${data.Texte}</Texte>
+<Security>${security}</Security>
     </WSI2_CreationEtiquette>
   </soap:Body>
 </soap:Envelope>`;
