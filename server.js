@@ -1737,7 +1737,6 @@ console.log("LONGUEUR CLE :", cle.length);
       data.TRDV +
       data.Assurance +
       data.Instructions +
-      data.Texte +
 cle;
 
     const security = crypto
@@ -1795,8 +1794,8 @@ cle;
       <TRDV>${data.TRDV}</TRDV>
       <Assurance>${data.Assurance}</Assurance>
       <Instructions>${data.Instructions}</Instructions>
-      <Texte>${data.Texte}</Texte>
 <Security>${security}</Security>
+<Texte>${data.Texte}</Texte>
     </WSI2_CreationEtiquette>
   </soap:Body>
 </soap:Envelope>`;
