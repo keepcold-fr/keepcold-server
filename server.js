@@ -297,7 +297,7 @@ if (!relayCode) {
   });
 }
 
-relayCode = "FR" + relayCode;
+relayCode = relayCode.replace(/^FR/, "");
     const orderNo = Date.now().toString();
 const weight = 2000
     const xml = `<?xml version="1.0" encoding="utf-8"?>
