@@ -298,6 +298,7 @@ if (!relayCode) {
 }
 
 relayCode = relayCode.replace(/^FR/, "");
+relayCode = "FR" + relayCode;
     const orderNo = Date.now().toString();
 const weight = 2000
     const xml = `<?xml version="1.0" encoding="utf-8"?>
@@ -327,7 +328,7 @@ const weight = 2000
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight Value="5" Unit="kg" />
+          <Weight Value="5000" Unit="g" />
         </Parcel>
       </Parcels>
 
