@@ -1669,9 +1669,8 @@ console.log("LONGUEUR CLE :", cle.length);
 
       Poids: "5000",
       Longueur: "",
-      Taille: "",
+      Taille: "L",
       NbColis: "1",
-
       CRT_Valeur: "0",
       CRT_Devise: "EUR",
       Exp_Valeur: "12",
