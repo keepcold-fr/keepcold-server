@@ -1632,8 +1632,10 @@ function exportCSV() {
 app.get("/test-wsi2-etiquette", async (req, res) => {
   try {
     const enseigne = process.env.MR_ENSEIGNE || "CC23WJF1";
-    const cle = process.env.MR_PRIVATE_KEY;
+    const cle = (process.env.MR_PRIVATE_KEY || "").trim();
 
+console.log("CLE MR OK ?", cle ? "OUI" : "NON");
+console.log("LONGUEUR CLE :", cle.length);
     const data = {
       Enseigne: enseigne,
       ModeCol: "REL",
