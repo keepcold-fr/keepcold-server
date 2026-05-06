@@ -1686,6 +1686,7 @@ app.get("/test-wsi2-etiquette", async (req, res) => {
       TRDV: "",
       Assurance: "0",
       Instructions: "Commande Keep Cold"
+      Texte: ""
     };
 
     const securityString =
@@ -1734,7 +1735,8 @@ app.get("/test-wsi2-etiquette", async (req, res) => {
       data.TRDV +
       data.Assurance +
       data.Instructions +
-      cle;
+      data.Texte +
+cle;
 
     const security = crypto
       .createHash("md5")
@@ -1792,6 +1794,7 @@ app.get("/test-wsi2-etiquette", async (req, res) => {
       <Assurance>${data.Assurance}</Assurance>
       <Instructions>${data.Instructions}</Instructions>
       <Security>${security}</Security>
+      <Texte>${data.Texte}</Texte>
     </WSI2_CreationEtiquette>
   </soap:Body>
 </soap:Envelope>`;
