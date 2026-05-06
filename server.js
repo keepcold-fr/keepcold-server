@@ -327,7 +327,7 @@ const weight = 2000
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight Value="1" Unit="kg" />
+          <Weight Value="5" Unit="kg" />
         </Parcel>
       </Parcels>
 
