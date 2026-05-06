@@ -1628,13 +1628,7 @@ function exportCSV() {
     res.send("Erreur admin : " + err.message);
   }
 });
-app.get("/test-wsi2-etiquette", async (req, res) => {
-  try {
-    res.send("Test WSI2 prêt - on ajoute le XML à l'étape suivante");
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
+
 app.get("/test-wsi2-etiquette", async (req, res) => {
   try {
     const enseigne = process.env.MR_ENSEIGNE || "CC23WJF1";
