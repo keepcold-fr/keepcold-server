@@ -1685,7 +1685,7 @@ app.get("/test-wsi2-etiquette", async (req, res) => {
       Montage: "",
       TRDV: "",
       Assurance: "0",
-      Instructions: "Commande Keep Cold"
+      Instructions: "Commande Keep Cold",
       Texte: ""
     };
 
