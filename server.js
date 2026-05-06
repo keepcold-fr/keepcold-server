@@ -321,13 +321,13 @@ const weight = 2000
       <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
 
-      <DeliveryMode Mode="24R" Location="${relais.code}" />
+      <DeliveryMode Mode="24R" Location="${relayCode}" />
       <CollectionMode Mode="REL" />
 
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight Value="1000" Unit="g" />
+          <Weight Value="1" Unit="kg" />
         </Parcel>
       </Parcels>
 
