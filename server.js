@@ -1645,7 +1645,7 @@ app.get("/test-wsi2-etiquette", async (req, res) => {
       cp: "13010",
       ville: "Marseille",
       relais: {
-        code: "131809" // ✅ vrai relais de tes logs
+        code: "031095" // ✅ vrai relais de tes logs
       },
       amount: 3
     };
