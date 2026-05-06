@@ -1635,6 +1635,193 @@ app.get("/test-wsi2-etiquette", async (req, res) => {
     res.status(500).send(err.message);
   }
 });
+app.get("/test-wsi2-etiquette", async (req, res) => {
+  try {
+    const enseigne = process.env.MR_ENSEIGNE || "CC23WJF1";
+    const cle = process.env.MR_PRIVATE_KEY;
+
+    const data = {
+      Enseigne: enseigne,
+      ModeCol: "REL",
+      ModeLiv: "24R",
+      NDossier: Date.now().toString().slice(-8),
+      NClient: "1",
+
+      Expe_Langage: "FR",
+      Expe_Ad1: "Jerome Carrio",
+      Expe_Ad2: "",
+      Expe_Ad3: "36 RUE ANDRE AUDOLI",
+      Expe_Ad4: "",
+      Expe_Ville: "MARSEILLE",
+      Expe_CP: "13010",
+      Expe_Pays: "FR",
+      Expe_Tel1: "0624947059",
+      Expe_Tel2: "",
+      Expe_Mail: "contact@keepcold.fr",
+
+      Dest_Langage: "FR",
+      Dest_Ad1: "Test Client",
+      Dest_Ad2: "",
+      Dest_Ad3: "36 RUE ANDRE AUDOLI",
+      Dest_Ad4: "",
+      Dest_Ville: "MARSEILLE",
+      Dest_CP: "13010",
+      Dest_Pays: "FR",
+      Dest_Tel1: "0624947059",
+      Dest_Tel2: "",
+      Dest_Mail: "contact@keepcold.fr",
+
+      Poids: "5000",
+      Longueur: "",
+      Taille: "",
+      NbColis: "1",
+
+      CRT_Valeur: "0",
+      CRT_Devise: "EUR",
+      Exp_Valeur: "12",
+      Exp_Devise: "EUR",
+
+      COL_Rel_Pays: "FR",
+      COL_Rel: "031095",
+      LIV_Rel_Pays: "FR",
+      LIV_Rel: "031095",
+
+      TAvisage: "",
+      TReprise: "",
+      Montage: "",
+      TRDV: "",
+      Assurance: "0",
+      Instructions: "Commande Keep Cold"
+    };
+
+    const securityString =
+      data.Enseigne +
+      data.ModeCol +
+      data.ModeLiv +
+      data.NDossier +
+      data.NClient +
+      data.Expe_Langage +
+      data.Expe_Ad1 +
+      data.Expe_Ad2 +
+      data.Expe_Ad3 +
+      data.Expe_Ad4 +
+      data.Expe_Ville +
+      data.Expe_CP +
+      data.Expe_Pays +
+      data.Expe_Tel1 +
+      data.Expe_Tel2 +
+      data.Expe_Mail +
+      data.Dest_Langage +
+      data.Dest_Ad1 +
+      data.Dest_Ad2 +
+      data.Dest_Ad3 +
+      data.Dest_Ad4 +
+      data.Dest_Ville +
+      data.Dest_CP +
+      data.Dest_Pays +
+      data.Dest_Tel1 +
+      data.Dest_Tel2 +
+      data.Dest_Mail +
+      data.Poids +
+      data.Longueur +
+      data.Taille +
+      data.NbColis +
+      data.CRT_Valeur +
+      data.CRT_Devise +
+      data.Exp_Valeur +
+      data.Exp_Devise +
+      data.COL_Rel_Pays +
+      data.COL_Rel +
+      data.LIV_Rel_Pays +
+      data.LIV_Rel +
+      data.TAvisage +
+      data.TReprise +
+      data.Montage +
+      data.TRDV +
+      data.Assurance +
+      data.Instructions +
+      cle;
+
+    const security = crypto
+      .createHash("md5")
+      .update(securityString)
+      .digest("hex")
+      .toUpperCase();
+
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <WSI2_CreationEtiquette xmlns="http://www.mondialrelay.fr/webservice/">
+      <Enseigne>${data.Enseigne}</Enseigne>
+      <ModeCol>${data.ModeCol}</ModeCol>
+      <ModeLiv>${data.ModeLiv}</ModeLiv>
+      <NDossier>${data.NDossier}</NDossier>
+      <NClient>${data.NClient}</NClient>
+      <Expe_Langage>${data.Expe_Langage}</Expe_Langage>
+      <Expe_Ad1>${data.Expe_Ad1}</Expe_Ad1>
+      <Expe_Ad2>${data.Expe_Ad2}</Expe_Ad2>
+      <Expe_Ad3>${data.Expe_Ad3}</Expe_Ad3>
+      <Expe_Ad4>${data.Expe_Ad4}</Expe_Ad4>
+      <Expe_Ville>${data.Expe_Ville}</Expe_Ville>
+      <Expe_CP>${data.Expe_CP}</Expe_CP>
+      <Expe_Pays>${data.Expe_Pays}</Expe_Pays>
+      <Expe_Tel1>${data.Expe_Tel1}</Expe_Tel1>
+      <Expe_Tel2>${data.Expe_Tel2}</Expe_Tel2>
+      <Expe_Mail>${data.Expe_Mail}</Expe_Mail>
+      <Dest_Langage>${data.Dest_Langage}</Dest_Langage>
+      <Dest_Ad1>${data.Dest_Ad1}</Dest_Ad1>
+      <Dest_Ad2>${data.Dest_Ad2}</Dest_Ad2>
+      <Dest_Ad3>${data.Dest_Ad3}</Dest_Ad3>
+      <Dest_Ad4>${data.Dest_Ad4}</Dest_Ad4>
+      <Dest_Ville>${data.Dest_Ville}</Dest_Ville>
+      <Dest_CP>${data.Dest_CP}</Dest_CP>
+      <Dest_Pays>${data.Dest_Pays}</Dest_Pays>
+      <Dest_Tel1>${data.Dest_Tel1}</Dest_Tel1>
+      <Dest_Tel2>${data.Dest_Tel2}</Dest_Tel2>
+      <Dest_Mail>${data.Dest_Mail}</Dest_Mail>
+      <Poids>${data.Poids}</Poids>
+      <Longueur>${data.Longueur}</Longueur>
+      <Taille>${data.Taille}</Taille>
+      <NbColis>${data.NbColis}</NbColis>
+      <CRT_Valeur>${data.CRT_Valeur}</CRT_Valeur>
+      <CRT_Devise>${data.CRT_Devise}</CRT_Devise>
+      <Exp_Valeur>${data.Exp_Valeur}</Exp_Valeur>
+      <Exp_Devise>${data.Exp_Devise}</Exp_Devise>
+      <COL_Rel_Pays>${data.COL_Rel_Pays}</COL_Rel_Pays>
+      <COL_Rel>${data.COL_Rel}</COL_Rel>
+      <LIV_Rel_Pays>${data.LIV_Rel_Pays}</LIV_Rel_Pays>
+      <LIV_Rel>${data.LIV_Rel}</LIV_Rel>
+      <TAvisage>${data.TAvisage}</TAvisage>
+      <TReprise>${data.TReprise}</TReprise>
+      <Montage>${data.Montage}</Montage>
+      <TRDV>${data.TRDV}</TRDV>
+      <Assurance>${data.Assurance}</Assurance>
+      <Instructions>${data.Instructions}</Instructions>
+      <Security>${security}</Security>
+    </WSI2_CreationEtiquette>
+  </soap:Body>
+</soap:Envelope>`;
+
+    console.log("XML WSI2 ENVOYÉ :", xml);
+
+    const response = await fetch("https://api.mondialrelay.com/Web_Services.asmx", {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/xml; charset=utf-8",
+        SOAPAction: "http://www.mondialrelay.fr/webservice/WSI2_CreationEtiquette"
+      },
+      body: xml
+    });
+
+    const resultText = await response.text();
+    console.log("RÉPONSE WSI2 :", resultText);
+
+    res.type("text/plain").send(resultText);
+  } catch (err) {
+    console.error("ERREUR TEST WSI2 :", err);
+    res.status(500).send(err.message);
+  }
+});
     app.get("/test-shipment", async (req, res) => {
   try {
     const fakeOrder = {
