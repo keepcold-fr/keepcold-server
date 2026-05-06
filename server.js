@@ -483,9 +483,27 @@ app.post("/mondial-relay", async (req, res) => {
 
     const text = await response.text();
     console.log("Réponse MR relais :", text);
+const relaisTrouves = [...text.matchAll(/<PointRelais_Details>([\s\S]*?)<\/PointRelais_Details>/g)].map(m => {
+  const block = m[1];
+  const num = (block.match(/<Num>(.*?)<\/Num>/) || [])[1] || "";
+  const pays = (block.match(/<Pays>(.*?)<\/Pays>/) || [])[1] || "";
+  const nom = (block.match(/<LgAdr1>(.*?)<\/LgAdr1>/) || [])[1] || "";
+  const cp = (block.match(/<CP>(.*?)<\/CP>/) || [])[1] || "";
+  const ville = (block.match(/<Ville>(.*?)<\/Ville>/) || [])[1] || "";
 
-    return res.json({ success: true, raw: text });
+  return {
+    num,
+    pays,
+    code_api2: pays + num,
+    nom,
+    cp,
+    ville
+  };
+});
 
+console.log("RELAIS API2 TROUVÉS :", relaisTrouves);
+    
+    return res.json({ success: true, relais: relaisTrouves, raw: text });
   } catch (error) {
     console.error("Erreur Mondial Relay :", error);
     return res.status(500).json({
