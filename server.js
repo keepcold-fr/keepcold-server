@@ -1639,7 +1639,7 @@ console.log("LONGUEUR CLE :", cle.length);
     const data = {
       Enseigne: enseigne,
       ModeCol: "REL",
-      ModeLiv: "24R",
+      ModeLiv: "24L",
       NDossier: Date.now().toString().slice(-8),
       NClient: "1",
 
@@ -1656,7 +1656,7 @@ console.log("LONGUEUR CLE :", cle.length);
       Expe_Mail: "contact@keepcold.fr",
 
       Dest_Langage: "FR",
-      Dest_Ad1: "Test Client",
+      Dest_Ad1: "Jerome Carrio",
       Dest_Ad2: "",
       Dest_Ad3: "36 RUE ANDRE AUDOLI",
       Dest_Ad4: "",
@@ -1677,9 +1677,9 @@ console.log("LONGUEUR CLE :", cle.length);
       Exp_Devise: "EUR",
 
       COL_Rel_Pays: "FR",
-      COL_Rel: "031095",
+      COL_Rel: "037059",
       LIV_Rel_Pays: "FR",
-      LIV_Rel: "031095",
+      LIV_Rel: "037059",
 
       TAvisage: "",
       TReprise: "",
@@ -1822,14 +1822,14 @@ cle;
     app.get("/test-shipment", async (req, res) => {
   try {
     const fakeOrder = {
-      email: "test@test.com",
-      nom: "Test Client",
-      tel: "0600000000",
-      addr: "10 rue test",
+      email: "jay13010@gmail.com",
+      nom: "JeromeCarrio",
+      tel: "0624947059",
+      addr: "36 RUE ANDRE AUDOLI",
       cp: "13010",
       ville: "Marseille",
       relais: {
-        code: "031095" // ✅ vrai relais de tes logs
+        code: "037059" // ✅ vrai relais de tes logs
       },
       amount: 3
     };
