@@ -1668,8 +1668,8 @@ console.log("LONGUEUR CLE :", cle.length);
       Dest_Mail: "contact@keepcold.fr",
 
       Poids: "5000",
-      Longueur: "",
-      Taille: "L",
+      Longueur: "10",
+      Taille: "1",
       NbColis: "1",
       CRT_Valeur: "0",
       CRT_Devise: "EUR",
