@@ -1645,8 +1645,8 @@ console.log("LONGUEUR CLE :", cle.length);
 
       Expe_Langage: "FR",
       Expe_Ad1: "Jerome Carrio",
-      Expe_Ad2: "",
-      Expe_Ad3: "36 RUE ANDRE AUDOLI",
+      Expe_Ad2: "36 RUE ANDRE AUDOLI",
+      Expe_Ad3: "",
       Expe_Ad4: "",
       Expe_Ville: "MARSEILLE",
       Expe_CP: "13010",
@@ -1657,8 +1657,8 @@ console.log("LONGUEUR CLE :", cle.length);
 
       Dest_Langage: "FR",
       Dest_Ad1: "Jerome Carrio",
-      Dest_Ad2: "",
-      Dest_Ad3: "36 RUE ANDRE AUDOLI",
+      Dest_Ad2: "36 RUE ANDRE AUDOLI",
+      Dest_Ad3: "",
       Dest_Ad4: "",
       Dest_Ville: "MARSEILLE",
       Dest_CP: "13010",
@@ -1668,8 +1668,8 @@ console.log("LONGUEUR CLE :", cle.length);
       Dest_Mail: "contact@keepcold.fr",
 
       Poids: "5000",
-      Longueur: "10",
-      Taille: "1",
+      Longueur: "",
+      Taille: "",
       NbColis: "1",
       CRT_Valeur: "0",
       CRT_Devise: "EUR",
