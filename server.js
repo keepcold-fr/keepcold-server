@@ -323,8 +323,7 @@ const weight = 5000
       <ParcelCount>1</ParcelCount>
 
       <DeliveryMode Mode="24R" Location="${relayCode}" />
-      <CollectionMode Mode="REL" />
-
+      <CollectionMode Mode="REL" Location="AUTO" />
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
