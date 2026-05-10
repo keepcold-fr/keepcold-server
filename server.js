@@ -1896,6 +1896,39 @@ app.get("/fix-db", async (req, res) => {
   }
 });
 
+app.get("/check-payment/:id", async (req, res) => {
+
+  try {
+
+    const checkoutId = req.params.id;
+
+    const response = await fetch(
+      `https://api.sumup.com/v0.1/checkouts/${checkoutId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${SUMUP_API_KEY}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    res.json({
+      status: data.status
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      error: "Erreur vérification paiement"
+    });
+
+  }
+
+});
+
 app.listen(PORT, () => {
   console.log("Serveur lancé sur le port " + PORT);
 });
