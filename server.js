@@ -600,11 +600,100 @@ app.post("/verify-payment", async (req, res) => {
         to: order.email,
         subject: "Commande Keep Cold confirmée ❄️",
         html: `
-          <h2>Merci ${order.nom || ""} 🙌</h2>
-          <p>Ta commande Keep Cold est bien confirmée.</p>
-          <p><strong>Montant :</strong> ${order.amount} €</p>
-          <p>Nous préparons ta commande et tu recevras le suivi dès l'expédition.</p>
-        `
+<div style="margin:0;padding:0;background:#eefaff;font-family:Arial,sans-serif;">
+  
+  <div style="max-width:600px;margin:30px auto;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+
+    <div style="background:linear-gradient(135deg,#00c2ff,#0077b6);padding:32px 20px;text-align:center;color:white;">
+      
+      <img 
+        src="https://keepcold.fr/logo-surf.png" 
+        alt="Keep Cold"
+        style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:4px solid rgba(255,255,255,0.3);box-shadow:0 8px 20px rgba(0,0,0,0.2);"
+      >
+
+      <h1 style="margin:18px 0 6px;font-size:30px;">
+        KEEP COLD ❄️
+      </h1>
+
+      <p style="margin:0;font-size:15px;opacity:0.95;">
+        Glaces à l'eau • Livraison France entière
+      </p>
+
+    </div>
+
+    <div style="padding:30px 24px;color:#102033;">
+
+      <h2 style="margin-top:0;font-size:24px;">
+        Merci ${order.nom || ""} 🙌
+      </h2>
+
+      <p style="font-size:16px;line-height:1.6;">
+        Ton paiement a bien été confirmé et ta commande Keep Cold est en préparation.
+      </p>
+
+      <div style="background:#f3fbff;border:1px solid #dbeafe;border-radius:18px;padding:18px;margin:24px 0;">
+
+        <h3 style="margin-top:0;color:#0077b6;">
+          📦 Récapitulatif
+        </h3>
+
+        <p style="margin:8px 0;">
+          <strong>Référence :</strong>
+          ${order.reference || "-"}
+        </p>
+
+        <p style="margin:8px 0;">
+          <strong>Montant payé :</strong>
+          ${order.amount} €
+        </p>
+
+        <p style="margin:8px 0;">
+          <strong>Point relais :</strong><br>
+          ${order.relais?.nom || "-"}<br>
+          ${order.relais?.adresse || ""}
+        </p>
+
+      </div>
+
+      <div style="background:#ecfeff;border-radius:18px;padding:18px;margin-top:20px;">
+
+        <p style="margin:0;font-size:15px;line-height:1.6;">
+          🚚 Tu recevras un email de suivi dès l’expédition de ta commande.
+        </p>
+
+      </div>
+
+      <div style="text-align:center;margin-top:32px;">
+
+        <a 
+          href="https://keepcold.fr"
+          style="
+            display:inline-block;
+            background:linear-gradient(135deg,#0077b6,#00c2ff);
+            color:white;
+            text-decoration:none;
+            padding:14px 26px;
+            border-radius:999px;
+            font-weight:bold;
+            box-shadow:0 10px 24px rgba(0,119,182,0.25);
+          "
+        >
+          Retourner sur Keep Cold
+        </a>
+
+      </div>
+
+    </div>
+
+    <div style="padding:18px;text-align:center;font-size:13px;color:#64748b;border-top:1px solid #e5eef5;">
+      © Keep Cold • Marseille 🌴
+    </div>
+
+  </div>
+
+</div>
+`
       });
     } catch (err) {
       console.error("ERREUR EMAIL CLIENT :", err);
