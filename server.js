@@ -364,7 +364,7 @@ const weight = 5000
     
     console.log("XML ENVOYÉ API2 :", xml);
 
-    const response = await fetch("https://connect-api.mondialrelay.com/api/Shipment", {
+    const response = await fetch("https://connect-api-sandbox.mondialrelay.com/api/shipment", {
       method: "POST",
       headers: {
         Accept: "application/xml",
