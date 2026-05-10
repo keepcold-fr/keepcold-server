@@ -321,6 +321,7 @@ const weight = 5000
       <OrderNo>${escapeXml(orderNo)}</OrderNo>
       <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
+      <ShipmentValue Currency="EUR" Amount="${Number(req.body.amount || 10).toFixed(2)}" />
 
       <DeliveryMode Mode="24R" Location="${relayCode}" />
       <CollectionMode Mode="REL" Location="AUTO" />
