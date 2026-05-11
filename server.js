@@ -288,8 +288,7 @@ app.post("/create-shipment", async (req, res) => {
     const phoneClient = cleanPhone(tel);
     let relayCode = relais?.code || relais?.Num || relais?.num || "";
 
-relayCode = String(relayCode).replace("FR-", "").replace("FR", "");
-
+relayCode = String(relayCode).trim();
 if (!relayCode) {
   return res.json({
     success: false,
@@ -297,8 +296,6 @@ if (!relayCode) {
   });
 }
 
-relayCode = relayCode.replace(/^FR/, "");
-relayCode = "FR" + relayCode;
     const orderNo = Date.now().toString();
 const weight = 5000;
 
