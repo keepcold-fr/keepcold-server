@@ -301,6 +301,11 @@ relayCode = relayCode.replace(/^FR/, "");
 relayCode = "FR" + relayCode;
     const orderNo = Date.now().toString();
 const weight = 5000
+    console.log("API2 BRAND =", process.env.MR_API2_BRAND_ID);
+console.log("API2 LOGIN =", process.env.MR_API2_LOGIN);
+console.log("API2 PASSWORD OK =", !!process.env.MR_API2_PASSWORD);
+console.log("API2 PASSWORD LENGTH =", process.env.MR_API2_PASSWORD?.length);
+console.log("API2 URL = sandbox");
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
