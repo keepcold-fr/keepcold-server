@@ -304,12 +304,12 @@ const weight = 5000
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
-    <Login>${escapeXml(process.env.MR_API2_LOGIN)}</Login>
-    <Password>${escapeXml(process.env.MR_API2_PASSWORD)}</Password>
-    <CustomerId>CC23WJF1</CustomerId>
-    <Culture>fr-FR</Culture>
-    <VersionAPI>1.0</VersionAPI>
-  </Context>
+  <Login>${escapeXml(process.env.MR_API2_LOGIN)}</Login>
+  <Password>${escapeXml(process.env.MR_API2_PASSWORD)}</Password>
+  <CustomerId>${escapeXml(process.env.MR_API2_BRAND_ID)}</CustomerId>
+  <Culture>fr-FR</Culture>
+  <VersionAPI>2.0</VersionAPI>
+</Context>
 
   <OutputOptions>
   <OutputFormat>PDF</OutputFormat>
