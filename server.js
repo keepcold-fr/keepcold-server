@@ -308,7 +308,7 @@ const weight = 5000
   <Password>${escapeXml(process.env.MR_API2_PASSWORD)}</Password>
   <CustomerId>${escapeXml(process.env.MR_API2_BRAND_ID)}</CustomerId>
   <Culture>fr-FR</Culture>
-  <VersionAPI>2.0</VersionAPI>
+  <VersionAPI>1.0</VersionAPI>
 </Context>
 
   <OutputOptions>
