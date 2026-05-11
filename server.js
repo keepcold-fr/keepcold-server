@@ -300,18 +300,23 @@ if (!relayCode) {
 relayCode = relayCode.replace(/^FR/, "");
 relayCode = "FR" + relayCode;
     const orderNo = Date.now().toString();
-const weight = 5000
-    console.log("API2 BRAND =", process.env.MR_API2_BRAND_ID);
-console.log("API2 LOGIN =", process.env.MR_API2_LOGIN);
-console.log("API2 PASSWORD OK =", !!process.env.MR_API2_PASSWORD);
-console.log("API2 PASSWORD LENGTH =", process.env.MR_API2_PASSWORD?.length);
+const weight = 5000;
+
+const api2Login = (process.env.MR_API2_LOGIN || "").trim();
+const api2Password = (process.env.MR_API2_PASSWORD || "").trim();
+const api2BrandId = (process.env.MR_API2_BRAND_ID || "").trim();
+
+console.log("API2 BRAND =", api2BrandId);
+console.log("API2 LOGIN =", api2Login);
+console.log("API2 PASSWORD OK =", !!api2Password);
+console.log("API2 PASSWORD LENGTH =", api2Password.length);
 console.log("API2 URL = sandbox");
     const xml = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request">
   <Context>
-  <Login>${escapeXml(process.env.MR_API2_LOGIN)}</Login>
-  <Password>${escapeXml(process.env.MR_API2_PASSWORD)}</Password>
-  <CustomerId>${escapeXml(process.env.MR_API2_BRAND_ID)}</CustomerId>
+  <Login>${escapeXml(api2Login)}</Login>
+<Password>${escapeXml(api2Password)}</Password>
+<CustomerId>${escapeXml(api2BrandId)}</CustomerId>
   <Culture>fr-FR</Culture>
   <VersionAPI>1.0</VersionAPI>
 </Context>
@@ -374,11 +379,9 @@ console.log("API2 URL = sandbox");
       headers: {
         Accept: "application/xml",
         "Content-Type": "text/xml; charset=utf-8",
-        Authorization:
-          "Basic " +
-          Buffer.from(
-            process.env.MR_API2_LOGIN + ":" + process.env.MR_API2_PASSWORD
-          ).toString("base64")
+        Authorization: "Basic " + Buffer.from(
+  api2Login + ":" + api2Password
+).toString("base64")
       },
       body: xml
     });
@@ -1928,7 +1931,7 @@ cle;
       amount: 3
     };
 
-    const response = await fetch("https://keepcold-server.onrender.com/create-shipment", {
+    const response = await fetch("http://127.0.0.1:" + PORT + "/create-shipment", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
