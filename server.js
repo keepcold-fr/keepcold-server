@@ -333,8 +333,8 @@ console.log("API2 URL = sandbox");
       <ParcelCount>1</ParcelCount>
       <ShipmentValue Currency="EUR" Amount="${Number(req.body.amount || 10).toFixed(2)}" />
 
-      <DeliveryMode Mode="24R" Location="003502" />
-<CollectionMode Mode="CCC" />
+      <DeliveryMode Mode="24R" Location="XXXXX" />
+<CollectionMode Mode="REL" Location="AUTO" />
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
