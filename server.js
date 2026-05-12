@@ -1771,9 +1771,9 @@ console.log("LONGUEUR CLE :", cle.length);
       Exp_Devise: "EUR",
 
       COL_Rel_Pays: "FR",
-      COL_Rel: "037059",
+      COL_Rel: "03559",
       LIV_Rel_Pays: "FR",
-      LIV_Rel: "037059",
+      LIV_Rel: "039559",
 
       TAvisage: "",
       TReprise: "",
