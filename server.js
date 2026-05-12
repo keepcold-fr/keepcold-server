@@ -1733,7 +1733,7 @@ console.log("LONGUEUR CLE :", cle.length);
     const data = {
       Enseigne: enseigne,
       ModeCol: "REL",
-      ModeLiv: "24L",
+      ModeLiv: "24R",
       NDossier: Date.now().toString().slice(-8),
       NClient: "1",
 
