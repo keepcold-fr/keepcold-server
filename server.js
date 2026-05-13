@@ -386,17 +386,16 @@ console.log("API2 URL = sandbox");
     const text = await response.text();
     console.log("RÉPONSE API2 :", text);
 
-    const match = text.match(/<Output>([\s\S]*?)<\/Output>/);
+    const pdfMatch = text.match(/<URL_Pdf>(.*?)<\/URL_Pdf>/);
 
-    if (!match) {
-      return res.json({
-        success: false,
-        error: "Aucune étiquette trouvée",
-        raw: text
-      });
-    }
+const pdfUrl = pdfMatch ? pdfMatch[1] : null;
 
-    const base64 = match[1].trim();
+return res.json({
+  success: true,
+  label: "OK",
+  pdfUrl,
+  raw: text
+});
 
     return res.json({
       success: true,
@@ -1021,15 +1020,20 @@ if (pdfMatch) {
     }
 
     await pool.query(
-      `
-      UPDATE orders
-      SET expedition_number = $1,
-          status = 'ETIQUETTE',
-          updated_at = NOW()
-      WHERE id = $2
-      `,
-      [shipmentData.label, req.params.id]
-    );
+  `
+  UPDATE orders
+  SET expedition_number = $1,
+      label_url = $2,
+      status = 'ETIQUETTE',
+      updated_at = NOW()
+  WHERE id = $3
+  `,
+  [
+    shipmentData.label || null,
+    pdfUrl || null,
+    req.params.id
+  ]
+);
 
     res.json({
   success: true,
