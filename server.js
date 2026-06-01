@@ -1290,7 +1290,7 @@ app.post("/admin/bulk-shipped", async (req, res) => {
   ${o.cart ? `
     <div style="margin-top:8px;font-size:12px;color:#475569;line-height:1.4">
       <strong>Panier :</strong><br>
-      <pre style="white-space:pre-wrap;font-family:inherit">${JSON.stringify(o.cart, null, 2)}</pre>
+      <pre style="white-space:pre-wrap;font-family:inherit">${formatCart(o.cart))}</pre>
     </div>
   ` : ""}
 </td>
