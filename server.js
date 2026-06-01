@@ -50,6 +50,7 @@ app.get("/init-db", async (req, res) => {
         cp TEXT,
         ville TEXT,
         relais JSONB,
+        cart JSONB,
         paid BOOLEAN DEFAULT false,
         payment_status TEXT DEFAULT 'PENDING',
         expedition_number TEXT,
@@ -62,6 +63,9 @@ app.get("/init-db", async (req, res) => {
     
 await pool.query(`
   ALTER TABLE orders ADD COLUMN IF NOT EXISTS label_url TEXT
+`);
+    await pool.query(`
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS cart JSONB
 `);
     res.json({ success: true });
   } catch (err) {
