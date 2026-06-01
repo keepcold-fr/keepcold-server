@@ -89,7 +89,7 @@ function checkAdmin(req, res) {
 ========================= */
 app.post("/create-checkout", async (req, res) => {
   try {
-    const { amount, email, nom, tel, addr, cp, ville, relais } = req.body;
+    const { amount, email, nom, tel, addr, cp, ville, relais, cart } = req.body;
 
     if (!amount || !email || !nom || !tel || !addr || !cp || !ville || !relais) {
       return res.status(400).json({
@@ -174,11 +174,12 @@ app.post("/create-checkout", async (req, res) => {
         cp,
         ville,
         relais,
+        cart,
         paid,
         payment_status,
         status
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       ON CONFLICT (checkout_id) DO NOTHING
       `,
       [
@@ -192,9 +193,10 @@ app.post("/create-checkout", async (req, res) => {
         cp,
         ville,
         JSON.stringify(relais),
-        false,
-        "PENDING",
-        "NOUVELLE"
+JSON.stringify(cart || {}),
+false,
+"PENDING",
+"NOUVELLE"
       ]
     );
 
