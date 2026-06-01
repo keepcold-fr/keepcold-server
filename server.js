@@ -1288,11 +1288,16 @@ app.post("/admin/bulk-shipped", async (req, res) => {
   <strong>${o.amount || "0"} €</strong>
 
   ${o.cart ? `
-    <div style="margin-top:8px;font-size:12px;color:#475569;line-height:1.4">
-      <strong>Panier :</strong><br>
-      <pre style="white-space:pre-wrap;font-family:inherit">${JSON.stringify(o.cart, null, 2)}</pre>
-    </div>
-  ` : ""}
+  <details style="margin-top:8px;font-size:12px;color:#475569;">
+    <summary style="cursor:pointer;font-weight:bold;color:#0077b6;">
+      🧺 Voir panier
+    </summary>
+
+    <pre style="white-space:pre-wrap;font-family:inherit;background:#f3fbff;padding:8px;border-radius:10px;margin-top:6px;">
+${JSON.stringify(o.cart, null, 2)}
+    </pre>
+  </details>
+` : ""}
 </td>
           <td><span class="badge ${o.paid ? "paid" : "pending"}">${o.paid ? "PAYÉ" : (o.payment_status || "PENDING")}</span></td>
           <td><span class="status ${status.toLowerCase()}">${status}</span>${o.printed ? `<br><small>🖨️ Imprimée</small>` : ""}</td>
