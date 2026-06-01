@@ -1284,7 +1284,16 @@ app.post("/admin/bulk-shipped", async (req, res) => {
             <small>${relais.adresse || relais.Address || ""}</small><br>
             <small>${relais.code || relais.Num || ""}</small>
           </td>
-          <td><strong>${o.amount || "0"} €</strong></td>
+          <td>
+  <strong>${o.amount || "0"} €</strong>
+
+  ${o.cart ? `
+    <div style="margin-top:8px;font-size:12px;color:#475569;line-height:1.4">
+      <strong>Panier :</strong><br>
+      <pre style="white-space:pre-wrap;font-family:inherit">${JSON.stringify(o.cart, null, 2)}</pre>
+    </div>
+  ` : ""}
+</td>
           <td><span class="badge ${o.paid ? "paid" : "pending"}">${o.paid ? "PAYÉ" : (o.payment_status || "PENDING")}</span></td>
           <td><span class="status ${status.toLowerCase()}">${status}</span>${o.printed ? `<br><small>🖨️ Imprimée</small>` : ""}</td>
           <td>${o.expedition_number ? `<a class="label-btn" href="/label/${o.checkout_id}?key=${req.query.key}" target="_blank">🧾 Étiquette</a>` : "-"}</td>
