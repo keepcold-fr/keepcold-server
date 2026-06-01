@@ -292,9 +292,19 @@ app.post("/create-shipment", async (req, res) => {
     }
 
     const phoneClient = cleanPhone(tel);
-    let relayCode = relais?.code || relais?.Num || relais?.num || "";
+    let relayCode =
+  relais?.code_api2 ||
+  relais?.code ||
+  relais?.Num ||
+  relais?.num ||
+  "";
 
 relayCode = String(relayCode).trim();
+
+if (relayCode && !relayCode.startsWith("FR")) {
+  relayCode = "FR" + relayCode;
+}
+
 if (!relayCode) {
   return res.json({
     success: false,
