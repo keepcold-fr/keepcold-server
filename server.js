@@ -1247,7 +1247,44 @@ app.post("/admin/bulk-shipped", async (req, res) => {
     });
   }
 });
-     
+
+function formatCartAdmin(cart) {
+  if (!cart) return "Panier vide";
+
+  const lignes = [];
+  const produits = cart.produits || {};
+
+  Object.entries(produits).forEach(([key, qty]) => {
+    qty = Number(qty || 0);
+    if (qty <= 0) return;
+
+    const parts = key.split("-");
+    const format = parts.pop();
+    const parfum = parts.join("-");
+
+    const nom = parfum
+      .replace("assortiment", "Assortiment")
+      .replace("coca", "Coca")
+      .replace("fraise", "Fraise")
+      .replace("menthe", "Menthe")
+      .replace("citron", "Citron")
+      .replace("passion", "Passion")
+      .replace("anis", "Anis")
+      .replace("cerise", "Cerise")
+      .replace("melon", "Melon")
+      .replace("pomme", "Pomme")
+      .replace("gum", "Gum");
+
+    lignes.push("🧊 " + qty + " × " + nom + " " + format + " ml");
+  });
+
+  const packs = cart.packs || [];
+  packs.forEach(pack => {
+    lignes.push("🎁 Pack " + pack.format + " ml - " + pack.price + " €");
+  });
+
+  return lignes.length ? lignes.join("\\n") : "Panier vide";
+}
     app.get("/admin", async (req, res) => {
   if (!checkAdmin(req, res)) return;
 
@@ -1294,7 +1331,7 @@ app.post("/admin/bulk-shipped", async (req, res) => {
     </summary>
 
     <pre style="white-space:pre-wrap;font-family:inherit;background:#f3fbff;padding:8px;border-radius:10px;margin-top:6px;">
-${JSON.stringify(o.cart, null, 2)}
+${formatCartAdmin(o.cart)}
     </pre>
   </details>
 ` : ""}
