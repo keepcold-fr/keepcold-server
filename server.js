@@ -1296,7 +1296,11 @@ function formatCartAdmin(cart) {
     `);
 
     const orders = result.rows;
-    const totalCA = orders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+    const totalCA = orders
+  .filter(o => o.paid)
+  .reduce((sum, o) => sum + Number(o.amount || 0), 0);const totalCA = orders
+  .filter(o => o.paid)
+  .reduce((sum, o) => sum + Number(o.amount || 0), 0);
     const totalPaid = orders.filter(o => o.paid).length;
     const totalPending = orders.filter(o => !o.paid).length;
     const totalLabels = orders.filter(o => o.expedition_number).length;
