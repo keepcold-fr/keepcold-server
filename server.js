@@ -301,8 +301,9 @@ app.post("/create-shipment", async (req, res) => {
 
 relayCode = String(relayCode).trim();
 
-if (relayCode && !relayCode.startsWith("FR")) {
-  relayCode = "FR" + relayCode;
+relayCode = String(relayCode)
+  .replace(/^FR/, "")
+  .trim();
 }
 
 if (!relayCode) {
