@@ -277,152 +277,180 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
+function decodeXml(value) {
+  return String(value || "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+function xmlValue(xml, tag) {
+  const match = String(xml || "").match(
+    new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`)
+  );
+  return match ? decodeXml(match[1]).trim() : "";
+}
+
+function normalizeRelayCode(relais) {
+  return String(
+    relais?.code_api2 || relais?.code || relais?.Num || relais?.num || ""
+  )
+    .trim()
+    .replace(/^FR-?/i, "");
+}
+
+function normalizeMondialRelayLabelUrl(value) {
+  if (!value) return "";
+  return new URL(value, "https://www.mondialrelay.com").toString();
+}
+
+async function createMondialRelayLabel(order) {
+  const { email, nom, tel, addr, cp, ville, relais, reference } = order;
+  const enseigne = (process.env.MR_ENSEIGNE || "").trim();
+  const privateKey = (process.env.MR_PRIVATE_KEY || "").trim();
+  const relayCode = normalizeRelayCode(relais);
+
+  if (!email || !nom || !tel || !addr || !cp || !ville) {
+    throw new Error("Infos client manquantes pour créer l'expédition");
+  }
+  if (!relayCode) throw new Error("Code point relais manquant");
+  if (!enseigne || !privateKey) {
+    throw new Error("Configuration Mondial Relay manquante");
+  }
+
+  const data = {
+    Enseigne: enseigne,
+    ModeCol: "REL",
+    ModeLiv: "24R",
+    NDossier: String(reference || Date.now()).replace(/[^a-zA-Z0-9_-]/g, "").slice(-15),
+    NClient: "1",
+    Expe_Langage: "FR",
+    Expe_Ad1: "Jerome Carrio",
+    Expe_Ad2: "36 RUE ANDRE AUDOLI",
+    Expe_Ad3: "",
+    Expe_Ad4: "",
+    Expe_Ville: "MARSEILLE",
+    Expe_CP: "13010",
+    Expe_Pays: "FR",
+    Expe_Tel1: "33624947059",
+    Expe_Tel2: "",
+    Expe_Mail: "contact@keepcold.fr",
+    Dest_Langage: "FR",
+    Dest_Ad1: String(nom).slice(0, 32),
+    Dest_Ad2: String(addr).slice(0, 32),
+    Dest_Ad3: "",
+    Dest_Ad4: "",
+    Dest_Ville: String(ville).slice(0, 26),
+    Dest_CP: String(cp).replace(/\s/g, "").slice(0, 10),
+    Dest_Pays: "FR",
+    Dest_Tel1: cleanPhone(tel).replace(/^\+/, ""),
+    Dest_Tel2: "",
+    Dest_Mail: String(email).slice(0, 70),
+    Poids: String(Number(order.weight || 5000)),
+    Longueur: "",
+    Taille: "",
+    NbColis: "1",
+    CRT_Valeur: "0",
+    CRT_Devise: "EUR",
+    Exp_Valeur: String(Math.round(Number(order.amount || 0) * 100)),
+    Exp_Devise: "EUR",
+    COL_Rel_Pays: "FR",
+    COL_Rel: "AUTO",
+    LIV_Rel_Pays: "FR",
+    LIV_Rel: relayCode,
+    TAvisage: "",
+    TReprise: "",
+    Montage: "",
+    TRDV: "",
+    Assurance: "0",
+    Instructions: "Commande Keep Cold",
+    Texte: ""
+  };
+
+  const signedFields = [
+    "Enseigne", "ModeCol", "ModeLiv", "NDossier", "NClient",
+    "Expe_Langage", "Expe_Ad1", "Expe_Ad2", "Expe_Ad3", "Expe_Ad4",
+    "Expe_Ville", "Expe_CP", "Expe_Pays", "Expe_Tel1", "Expe_Tel2", "Expe_Mail",
+    "Dest_Langage", "Dest_Ad1", "Dest_Ad2", "Dest_Ad3", "Dest_Ad4",
+    "Dest_Ville", "Dest_CP", "Dest_Pays", "Dest_Tel1", "Dest_Tel2", "Dest_Mail",
+    "Poids", "Longueur", "Taille", "NbColis", "CRT_Valeur", "CRT_Devise",
+    "Exp_Valeur", "Exp_Devise", "COL_Rel_Pays", "COL_Rel", "LIV_Rel_Pays",
+    "LIV_Rel", "TAvisage", "TReprise", "Montage", "TRDV", "Assurance", "Instructions"
+  ];
+  const security = crypto
+    .createHash("md5")
+    .update(signedFields.map(field => data[field]).join("") + privateKey)
+    .digest("hex")
+    .toUpperCase();
+  const fieldsXml = Object.entries(data)
+    .filter(([key]) => key !== "Texte")
+    .map(([key, value]) => `<${key}>${escapeXml(value)}</${key}>`)
+    .join("\n");
+  const xml = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <WSI2_CreationEtiquette xmlns="http://www.mondialrelay.fr/webservice/">
+      ${fieldsXml}
+      <Security>${security}</Security>
+      <Texte>${escapeXml(data.Texte)}</Texte>
+    </WSI2_CreationEtiquette>
+  </soap:Body>
+</soap:Envelope>`;
+
+  const response = await fetch("https://api.mondialrelay.com/Web_Services.asmx", {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/xml; charset=utf-8",
+      SOAPAction: "http://www.mondialrelay.fr/webservice/WSI2_CreationEtiquette"
+    },
+    body: xml
+  });
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(`Mondial Relay HTTP ${response.status}`);
+  }
+
+  const status = xmlValue(responseText, "STAT");
+  const expeditionNumber = xmlValue(responseText, "ExpeditionNum");
+  const labelUrl = normalizeMondialRelayLabelUrl(
+    xmlValue(responseText, "URL_Etiquette")
+  );
+
+  if (status !== "0") {
+    throw new Error(`Mondial Relay a refusé l'étiquette (STAT ${status || "inconnu"})`);
+  }
+  if (!expeditionNumber || !labelUrl) {
+    throw new Error("Mondial Relay n'a pas retourné de PDF d'étiquette");
+  }
+
+  const pdfResponse = await fetch(labelUrl);
+  const contentType = pdfResponse.headers.get("content-type") || "";
+  const pdfSignature = pdfResponse.ok
+    ? Buffer.from(await pdfResponse.arrayBuffer()).subarray(0, 4).toString()
+    : "";
+  if (
+    !pdfResponse.ok ||
+    (!contentType.toLowerCase().includes("pdf") && pdfSignature !== "%PDF")
+  ) {
+    throw new Error("Le PDF Mondial Relay retourné est inaccessible");
+  }
+
+  return { expeditionNumber, pdfUrl: labelUrl };
+}
+
 /* =========================
    CREATION EXPEDITION MONDIAL RELAY
 ========================= */
 app.post("/create-shipment", async (req, res) => {
   try {
-    const { email, nom, tel, addr, cp, ville, relais, reference } = req.body;
-
-    if (!email || !nom || !tel || !addr || !cp || !ville) {
-      return res.status(400).json({
-        success: false,
-        error: "Infos client manquantes pour créer l'expédition"
-      });
-    }
-
-    const phoneClient = cleanPhone(tel);
-    let relayCode =
-  relais?.code_api2 ||
-  relais?.code ||
-  relais?.Num ||
-  relais?.num ||
-  "";
-
-relayCode = String(relayCode).trim();
-
-relayCode = String(relayCode)
-  .replace(/^FR/, "")
-  .trim();
-
-
-if (!relayCode) {
-  return res.json({
-    success: false,
-    error: "Code point relais manquant"
-  });
-}
-
-    const orderNo = Date.now().toString();
-const weight = 5000;
-
-const api2Login = (process.env.MR_API2_LOGIN || "").trim();
-const api2Password = (process.env.MR_API2_PASSWORD || "").trim();
-const api2BrandId = (process.env.MR_API2_BRAND_ID || "").trim();
-
-console.log("API2 BRAND =", api2BrandId);
-console.log("API2 LOGIN =", api2Login);
-console.log("API2 PASSWORD OK =", !!api2Password);
-console.log("API2 PASSWORD LENGTH =", api2Password.length);
-console.log("API2 URL = sandbox");
-    const xml = `<?xml version="1.0" encoding="utf-8"?>
-<ShipmentCreationRequest xmlns="http://www.example.org/Request">
-  <Context>
-  <Login>${escapeXml(api2Login)}</Login>
-<Password>${escapeXml(api2Password)}</Password>
-<CustomerId>${escapeXml(api2BrandId)}</CustomerId>
-  <Culture>fr-FR</Culture>
-  <VersionAPI>1.0</VersionAPI>
-</Context>
-
-  <OutputOptions>
-  <OutputFormat>PDF</OutputFormat>
-  <OutputType>PdfUrl</OutputType>
-</OutputOptions>
-
-  <ShipmentsList>
-    <Shipment>
-      <OrderNo>${escapeXml(orderNo)}</OrderNo>
-      <CustomerNo>1</CustomerNo>
-      <ParcelCount>1</ParcelCount>
-      <ShipmentValue Currency="EUR" Amount="${Number(req.body.amount || 10).toFixed(2)}" />
-
-      <DeliveryMode Mode="24R" Location="${relayCode}" />
-<CollectionMode Mode="REL" Location="AUTO" />
-      <Parcels>
-        <Parcel>
-          <Content>Commande Keep Cold</Content>
-          <Weight Value="${weight}" Unit="gr" />
-        </Parcel>
-      </Parcels>
-
-      <Sender>
-        <Address>
-          <Firstname>Jerome</Firstname>
-          <Lastname>Carrio</Lastname>
-          <Streetname>36 RUE ANDRE AUDOLI</Streetname>
-          <CountryCode>FR</CountryCode>
-          <PostCode>13010</PostCode>
-          <City>MARSEILLE</City>
-          <MobileNo>+33624947059</MobileNo>
-          <Email>contact@keepcold.fr</Email>
-        </Address>
-      </Sender>
-
-      <Recipient>
-        <Address>
-          <Firstname>${escapeXml(nom || "Client")}</Firstname>
-          <Lastname>KeepCold</Lastname>
-          <Streetname>${escapeXml(addr)}</Streetname>
-          <CountryCode>FR</CountryCode>
-          <PostCode>${escapeXml(cp)}</PostCode>
-          <City>${escapeXml(ville)}</City>
-          <MobileNo>${escapeXml(phoneClient)}</MobileNo>
-          <Email>${escapeXml(email)}</Email>
-        </Address>
-      </Recipient>
-
-    </Shipment>
-  </ShipmentsList>
-</ShipmentCreationRequest>`;
-    
-    console.log("XML ENVOYÉ API2 :", xml);
-
-    const response = await fetch("https://connect-api-sandbox.mondialrelay.com/api/shipment", {
-      method: "POST",
-      headers: {
-        Accept: "application/xml",
-        "Content-Type": "text/xml; charset=utf-8",
-        Authorization: "Basic " + Buffer.from(
-  api2Login + ":" + api2Password
-).toString("base64")
-      },
-      body: xml
-    });
-
-    const text = await response.text();
-    console.log("RÉPONSE API2 :", text);
-
-    const pdfMatch = text.match(/<URL_Pdf>(.*?)<\/URL_Pdf>/);
-
-const pdfUrl = pdfMatch ? pdfMatch[1] : null;
-
-return res.json({
-  success: true,
-  label: "OK",
-  pdfUrl,
-  raw: text
-});
-
-    return res.json({
-      success: true,
-      label: base64,
-      raw: text
-    });
+    const shipment = await createMondialRelayLabel(req.body);
+    return res.json({ success: true, ...shipment });
 
   } catch (err) {
     console.error("ERREUR CREATE SHIPMENT :", err);
-    return res.status(500).json({
+    return res.status(502).json({
       success: false,
       error: err.message
     });
@@ -1010,31 +1038,7 @@ app.post("/admin/generate-label/:id", async (req, res) => {
       });
     }
 
-    const shipmentResponse = await fetch(
-      "https://keepcold-server.onrender.com/create-shipment",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(order)
-      }
-    );
-
-    const shipmentData = await shipmentResponse.json();
-
-    // 🔍 récupérer URL PDF si dispo
-const pdfMatch = shipmentData.raw?.match(/<URL_Pdf>(.*?)<\/URL_Pdf>/);
-
-let pdfUrl = null;
-
-if (pdfMatch) {
-  pdfUrl = pdfMatch[1];
-  console.log("PDF trouvé :", pdfUrl);
-                         }
-    if (!shipmentData.success) {
-      return res.json(shipmentData);
-    }
+    const shipmentData = await createMondialRelayLabel(order);
 
     await pool.query(
   `
@@ -1046,15 +1050,16 @@ if (pdfMatch) {
   WHERE id = $3
   `,
   [
-    shipmentData.label || null,
-    pdfUrl || null,
+    shipmentData.expeditionNumber,
+    shipmentData.pdfUrl,
     req.params.id
   ]
 );
 
     res.json({
   success: true,
-  label: shipmentData.label
+  expeditionNumber: shipmentData.expeditionNumber,
+  pdfUrl: shipmentData.pdfUrl
 });
 
 } catch (err) {
@@ -1108,34 +1113,18 @@ app.post("/admin/bulk-generate-labels", async (req, res) => {
           continue;
         }
 
-        const shipmentResponse = await fetch(
-          "https://keepcold-server.onrender.com/create-shipment",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(order)
-          }
-        );
-
-        const shipmentData = await shipmentResponse.json();
-
-        if (!shipmentData.success) {
-          errors.push({
-            id,
-            error: shipmentData.error || "Erreur création étiquette"
-          });
-          continue;
-        }
+        const shipmentData = await createMondialRelayLabel(order);
 
         await pool.query(
           `
           UPDATE orders
           SET expedition_number = $1,
+              label_url = $2,
               status = 'ETIQUETTE',
               updated_at = NOW()
-          WHERE id = $2
+          WHERE id = $3
           `,
-          [shipmentData.label, id]
+          [shipmentData.expeditionNumber, shipmentData.pdfUrl, id]
         );
 
         done.push({ id, message: "Étiquette créée" });
@@ -1797,230 +1786,6 @@ function exportCSV() {
   }
 });
 
-app.get("/test-wsi2-etiquette", async (req, res) => {
-  try {
-    const enseigne = process.env.MR_ENSEIGNE || "CC23WJF1";
-    const cle = (process.env.MR_PRIVATE_KEY || "").trim();
-
-console.log("CLE MR OK ?", cle ? "OUI" : "NON");
-console.log("LONGUEUR CLE :", cle.length);
-    const data = {
-      Enseigne: enseigne,
-      ModeCol: "REL",
-      ModeLiv: "24R",
-      NDossier: Date.now().toString().slice(-8),
-      NClient: "1",
-
-      Expe_Langage: "FR",
-      Expe_Ad1: "Jerome Carrio",
-      Expe_Ad2: "36 RUE ANDRE AUDOLI",
-      Expe_Ad3: "",
-      Expe_Ad4: "",
-      Expe_Ville: "MARSEILLE",
-      Expe_CP: "13010",
-      Expe_Pays: "FR",
-      Expe_Tel1: "33624947059",
-      Expe_Tel2: "",
-      Expe_Mail: "contact@keepcold.fr",
-
-      Dest_Langage: "FR",
-      Dest_Ad1: "Jerome Carrio",
-      Dest_Ad2: "36 RUE ANDRE AUDOLI",
-      Dest_Ad3: "",
-      Dest_Ad4: "",
-      Dest_Ville: "MARSEILLE",
-      Dest_CP: "13010",
-      Dest_Pays: "FR",
-      Dest_Tel1: "33624947059",
-      Dest_Tel2: "",
-      Dest_Mail: "contact@keepcold.fr",
-
-      Poids: "5000",
-      Longueur: "",
-      Taille: "",
-      NbColis: "1",
-      CRT_Valeur: "0",
-      CRT_Devise: "EUR",
-      Exp_Valeur: "12",
-      Exp_Devise: "EUR",
-
-      COL_Rel_Pays: "FR",
-      COL_Rel: "AUTO",
-      LIV_Rel_Pays: "FR",
-      LIV_Rel: "039559",
-
-      TAvisage: "",
-      TReprise: "",
-      Montage: "",
-      TRDV: "",
-      Assurance: "0",
-      Instructions: "Commande Keep Cold",
-      Texte: ""
-    };
-
-    const securityString =
-      data.Enseigne +
-      data.ModeCol +
-      data.ModeLiv +
-      data.NDossier +
-      data.NClient +
-      data.Expe_Langage +
-      data.Expe_Ad1 +
-      data.Expe_Ad2 +
-      data.Expe_Ad3 +
-      data.Expe_Ad4 +
-      data.Expe_Ville +
-      data.Expe_CP +
-      data.Expe_Pays +
-      data.Expe_Tel1 +
-      data.Expe_Tel2 +
-      data.Expe_Mail +
-      data.Dest_Langage +
-      data.Dest_Ad1 +
-      data.Dest_Ad2 +
-      data.Dest_Ad3 +
-      data.Dest_Ad4 +
-      data.Dest_Ville +
-      data.Dest_CP +
-      data.Dest_Pays +
-      data.Dest_Tel1 +
-      data.Dest_Tel2 +
-      data.Dest_Mail +
-      data.Poids +
-      data.Longueur +
-      data.Taille +
-      data.NbColis +
-      data.CRT_Valeur +
-      data.CRT_Devise +
-      data.Exp_Valeur +
-      data.Exp_Devise +
-      data.COL_Rel_Pays +
-      data.COL_Rel +
-      data.LIV_Rel_Pays +
-      data.LIV_Rel +
-      data.TAvisage +
-      data.TReprise +
-      data.Montage +
-      data.TRDV +
-      data.Assurance +
-      data.Instructions +
-cle;
-
-    const security = crypto
-      .createHash("md5")
-      .update(securityString)
-      .digest("hex")
-      .toUpperCase();
-
-    const xml = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <WSI2_CreationEtiquette xmlns="http://www.mondialrelay.fr/webservice/">
-      <Enseigne>${data.Enseigne}</Enseigne>
-      <ModeCol>${data.ModeCol}</ModeCol>
-      <ModeLiv>${data.ModeLiv}</ModeLiv>
-      <NDossier>${data.NDossier}</NDossier>
-      <NClient>${data.NClient}</NClient>
-      <Expe_Langage>${data.Expe_Langage}</Expe_Langage>
-      <Expe_Ad1>${data.Expe_Ad1}</Expe_Ad1>
-      <Expe_Ad2>${data.Expe_Ad2}</Expe_Ad2>
-      <Expe_Ad3>${data.Expe_Ad3}</Expe_Ad3>
-      <Expe_Ad4>${data.Expe_Ad4}</Expe_Ad4>
-      <Expe_Ville>${data.Expe_Ville}</Expe_Ville>
-      <Expe_CP>${data.Expe_CP}</Expe_CP>
-      <Expe_Pays>${data.Expe_Pays}</Expe_Pays>
-      <Expe_Tel1>${data.Expe_Tel1}</Expe_Tel1>
-      <Expe_Tel2>${data.Expe_Tel2}</Expe_Tel2>
-      <Expe_Mail>${data.Expe_Mail}</Expe_Mail>
-      <Dest_Langage>${data.Dest_Langage}</Dest_Langage>
-      <Dest_Ad1>${data.Dest_Ad1}</Dest_Ad1>
-      <Dest_Ad2>${data.Dest_Ad2}</Dest_Ad2>
-      <Dest_Ad3>${data.Dest_Ad3}</Dest_Ad3>
-      <Dest_Ad4>${data.Dest_Ad4}</Dest_Ad4>
-      <Dest_Ville>${data.Dest_Ville}</Dest_Ville>
-      <Dest_CP>${data.Dest_CP}</Dest_CP>
-      <Dest_Pays>${data.Dest_Pays}</Dest_Pays>
-      <Dest_Tel1>${data.Dest_Tel1}</Dest_Tel1>
-      <Dest_Tel2>${data.Dest_Tel2}</Dest_Tel2>
-      <Dest_Mail>${data.Dest_Mail}</Dest_Mail>
-      <Poids>${data.Poids}</Poids>
-      <Longueur>${data.Longueur}</Longueur>
-      <Taille>${data.Taille}</Taille>
-      <NbColis>${data.NbColis}</NbColis>
-      <CRT_Valeur>${data.CRT_Valeur}</CRT_Valeur>
-      <CRT_Devise>${data.CRT_Devise}</CRT_Devise>
-      <Exp_Valeur>${data.Exp_Valeur}</Exp_Valeur>
-      <Exp_Devise>${data.Exp_Devise}</Exp_Devise>
-      <COL_Rel_Pays>${data.COL_Rel_Pays}</COL_Rel_Pays>
-      <COL_Rel>${data.COL_Rel}</COL_Rel>
-      <LIV_Rel_Pays>${data.LIV_Rel_Pays}</LIV_Rel_Pays>
-      <LIV_Rel>${data.LIV_Rel}</LIV_Rel>
-      <TAvisage>${data.TAvisage}</TAvisage>
-      <TReprise>${data.TReprise}</TReprise>
-      <Montage>${data.Montage}</Montage>
-      <TRDV>${data.TRDV}</TRDV>
-      <Assurance>${data.Assurance}</Assurance>
-      <Instructions>${data.Instructions}</Instructions>
-<Security>${security}</Security>
-<Texte>${data.Texte}</Texte>
-    </WSI2_CreationEtiquette>
-  </soap:Body>
-</soap:Envelope>`;
-
-    console.log("XML WSI2 ENVOYÉ :", xml);
-
-    const response = await fetch("https://api.mondialrelay.com/Web_Services.asmx", {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/xml; charset=utf-8",
-        SOAPAction: "http://www.mondialrelay.fr/webservice/WSI2_CreationEtiquette"
-      },
-      body: xml
-    });
-
-    const resultText = await response.text();
-    console.log("RÉPONSE WSI2 :", resultText);
-
-    res.type("text/plain").send(resultText);
-  } catch (err) {
-    console.error("ERREUR TEST WSI2 :", err);
-    res.status(500).send(err.message);
-  }
-});
-    app.get("/test-shipment", async (req, res) => {
-  try {
-    const fakeOrder = {
-      email: "jay13010@gmail.com",
-      nom: "JeromeCarrio",
-      tel: "0624947059",
-      addr: "36 RUE ANDRE AUDOLI",
-      cp: "13011",
-      ville: "Marseille",
-      relais: {
-  code: "039559"
-},
-      amount: 3
-    };
-
-    const response = await fetch("http://127.0.0.1:" + PORT + "/create-shipment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(fakeOrder)
-    });
-
-    const data = await response.json();
-
-    console.log("TEST SHIPMENT RESULT :", data);
-
-    return res.json(data);
-
-  } catch (err) {
-    console.error("TEST ERROR :", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
 app.get("/label/:checkout_id", async (req, res) => {
   if (req.query.key !== process.env.ADMIN_KEY) {
     return res.send("⛔ Accès refusé");
@@ -2035,22 +1800,15 @@ app.get("/label/:checkout_id", async (req, res) => {
     return res.send("Commande introuvable");
   }
 
-  const row = result.rows[0];
-const base64 = row.expedition_number;
+const row = result.rows[0];
 const labelUrl = row.label_url;
 
-  // 🔥 PRIORITÉ AU PDF DIRECT
 if (labelUrl) {
   console.log("Redirection PDF :", labelUrl);
   return res.redirect(labelUrl);
 }
 
-  if (!base64 || base64 === "OK") {
-    return res.send("Étiquette non disponible");
-  }
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.send(Buffer.from(base64, "base64"));
+  return res.status(404).send("Étiquette PDF non disponible");
 });
 app.get("/fix-db", async (req, res) => {
   try {
