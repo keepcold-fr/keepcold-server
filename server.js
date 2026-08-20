@@ -339,6 +339,14 @@ async function createMondialRelayLabel(order) {
     throw new Error("Configuration Mondial Relay manquante");
   }
 
+  console.log("MONDIAL RELAY WSI2 CONFIG :", {
+    endpoint: "https://api.mondialrelay.com/WebService.asmx",
+    enseigne,
+    enseigneLength: enseigne.length,
+    privateKeyPresent: true,
+    privateKeyLength: privateKey.length
+  });
+
   const data = {
     Enseigne: enseigne,
     ModeCol: "REL",
@@ -418,7 +426,7 @@ async function createMondialRelayLabel(order) {
   </soap:Body>
 </soap:Envelope>`;
 
-  const response = await fetch("https://api.mondialrelay.com/Web_Services.asmx", {
+  const response = await fetch("https://api.mondialrelay.com/WebService.asmx", {
     method: "POST",
     headers: {
       "Content-Type": "text/xml; charset=utf-8",
@@ -436,6 +444,13 @@ async function createMondialRelayLabel(order) {
   const labelUrl = normalizeMondialRelayLabelUrl(
     xmlValue(responseText, "URL_Etiquette")
   );
+
+  console.log("MONDIAL RELAY WSI2 RESPONSE :", {
+    httpStatus: response.status,
+    stat: status || null,
+    hasExpeditionNumber: !!expeditionNumber,
+    hasLabelUrl: !!labelUrl
+  });
 
   if (status !== "0") {
     throw new Error(`Mondial Relay a refusé l'étiquette (STAT ${status || "inconnu"})`);
@@ -1082,6 +1097,11 @@ app.post("/admin/generate-label/:id", async (req, res) => {
 });
 
 } catch (err) {
+  console.error("ERREUR ADMIN GENERATE LABEL :", {
+    orderId: req.params.id,
+    message: err.message,
+    stack: err.stack
+  });
   res.status(500).json({
     success: false,
     error: err.message
@@ -1149,6 +1169,11 @@ app.post("/admin/bulk-generate-labels", async (req, res) => {
         done.push({ id, message: "Étiquette créée" });
 
       } catch (err) {
+        console.error("ERREUR ADMIN BULK LABEL :", {
+          orderId: id,
+          message: err.message,
+          stack: err.stack
+        });
         errors.push({ id, error: err.message });
       }
     }
@@ -1160,6 +1185,7 @@ app.post("/admin/bulk-generate-labels", async (req, res) => {
     });
 
   } catch (err) {
+    console.error("ERREUR ADMIN BULK LABELS :", err);
     res.status(500).json({
       success: false,
       error: err.message
