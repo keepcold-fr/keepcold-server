@@ -306,6 +306,25 @@ function normalizeMondialRelayLabelUrl(value) {
   return new URL(value, "https://www.mondialrelay.com").toString();
 }
 
+function normalizeMrText(value, maxLength) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^0-9A-Z_\-'., /]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function normalizeMrPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("0033")) return `+33${digits.slice(4)}`;
+  if (digits.startsWith("33")) return `+33${digits.slice(2)}`;
+  if (digits.startsWith("0")) return `+33${digits.slice(1)}`;
+  return `+33${digits}`;
+}
+
 async function createMondialRelayLabel(order) {
   const { email, nom, tel, addr, cp, ville, relais, reference } = order;
   const enseigne = (process.env.MR_ENSEIGNE || "").trim();
@@ -324,30 +343,30 @@ async function createMondialRelayLabel(order) {
     Enseigne: enseigne,
     ModeCol: "REL",
     ModeLiv: "24R",
-    NDossier: String(reference || Date.now()).replace(/[^a-zA-Z0-9_-]/g, "").slice(-15),
+    NDossier: normalizeMrText(reference || Date.now(), 15),
     NClient: "1",
     Expe_Langage: "FR",
-    Expe_Ad1: "Jerome Carrio",
-    Expe_Ad2: "36 RUE ANDRE AUDOLI",
-    Expe_Ad3: "",
+    Expe_Ad1: "JEROME CARRIO",
+    Expe_Ad2: "",
+    Expe_Ad3: "36 RUE ANDRE AUDOLI",
     Expe_Ad4: "",
     Expe_Ville: "MARSEILLE",
     Expe_CP: "13010",
     Expe_Pays: "FR",
-    Expe_Tel1: "33624947059",
+    Expe_Tel1: "+33624947059",
     Expe_Tel2: "",
     Expe_Mail: "contact@keepcold.fr",
     Dest_Langage: "FR",
-    Dest_Ad1: String(nom).slice(0, 32),
-    Dest_Ad2: String(addr).slice(0, 32),
-    Dest_Ad3: "",
+    Dest_Ad1: normalizeMrText(nom, 32),
+    Dest_Ad2: "",
+    Dest_Ad3: normalizeMrText(addr, 32),
     Dest_Ad4: "",
-    Dest_Ville: String(ville).slice(0, 26),
+    Dest_Ville: normalizeMrText(ville, 26),
     Dest_CP: String(cp).replace(/\s/g, "").slice(0, 10),
     Dest_Pays: "FR",
-    Dest_Tel1: cleanPhone(tel).replace(/^\+/, ""),
+    Dest_Tel1: normalizeMrPhone(tel),
     Dest_Tel2: "",
-    Dest_Mail: String(email).slice(0, 70),
+    Dest_Mail: String(email).trim().slice(0, 70),
     Poids: String(Number(order.weight || 5000)),
     Longueur: "",
     Taille: "",
@@ -365,7 +384,7 @@ async function createMondialRelayLabel(order) {
     Montage: "",
     TRDV: "",
     Assurance: "0",
-    Instructions: "Commande Keep Cold",
+    Instructions: "COMMANDE KEEP COLD",
     Texte: ""
   };
 
