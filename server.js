@@ -329,9 +329,9 @@ const MR_API2_ENDPOINT = "https://connect-api.mondialrelay.com/api/Shipment";
 
 function xmlAttribute(attributes, name) {
   const match = String(attributes || "").match(
-    new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i")
+    new RegExp(`\\b${name}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, "i")
   );
-  return match ? decodeXml(match[1]).trim() : "";
+  return match ? decodeXml(match[2]).trim() : "";
 }
 
 function parseApi2Statuses(xml) {
@@ -426,7 +426,7 @@ async function createMondialRelayLabel(order) {
       <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
       <ShipmentValue Currency="EUR" Amount="${shipmentValue}" />
-      <DeliveryMode Mode="24R" Location="${relayCode}" />
+      <DeliveryMode Mode="24R/MED" Location="${relayCode}" />
       <CollectionMode Mode="REL" Location="AUTO" />
       <Parcels>
         <Parcel>
@@ -467,6 +467,7 @@ async function createMondialRelayLabel(order) {
     brandId: api2BrandId,
     loginPresent: true,
     passwordPresent: true,
+    deliveryMode: "24R/MED",
     relayCode,
     weight
   });
