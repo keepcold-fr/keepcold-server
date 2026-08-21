@@ -1068,7 +1068,9 @@ app.post("/admin/change-relay/:id", async (req, res) => {
       code_api2: `FR${relayNumber}`,
       pays: "FR",
       nom: relayName,
-      information: ""
+      Name: relayName,
+      information: "",
+      Information: ""
     };
 
     await pool.query(
