@@ -657,7 +657,9 @@ const relaisTrouves = [...text.matchAll(/<PointRelais_Details>([\s\S]*?)<\/Point
     ville,
     information
   };
-});
+}).filter(relais =>
+  !/LOCKER/i.test(`${relais.information} ${relais.nom}`)
+);
 
 console.log("RELAIS API2 TROUVÉS :", relaisTrouves);
     
@@ -1023,6 +1025,63 @@ app.post("/admin/status/:id", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/admin/change-relay/:id", async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    const relayNumber = normalizeRelayCode({ code: req.body.code });
+    const relayName = normalizeMrText(req.body.nom || "POINT RELAIS", 36);
+
+    if (!/^[0-9]{6}$/.test(relayNumber)) {
+      return res.status(400).json({
+        success: false,
+        error: "Le code relais doit contenir 6 chiffres"
+      });
+    }
+
+    const result = await pool.query(
+      "SELECT relais, expedition_number FROM orders WHERE id = $1",
+      [req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Commande introuvable"
+      });
+    }
+    if (result.rows[0].expedition_number) {
+      return res.status(409).json({
+        success: false,
+        error: "Impossible de changer le relais après création de l'étiquette"
+      });
+    }
+
+    const relais = {
+      ...(result.rows[0].relais || {}),
+      Num: relayNumber,
+      num: relayNumber,
+      code: relayNumber,
+      code_api2: `FR${relayNumber}`,
+      pays: "FR",
+      nom: relayName,
+      information: ""
+    };
+
+    await pool.query(
+      `UPDATE orders
+       SET relais = $1::jsonb, updated_at = NOW()
+       WHERE id = $2`,
+      [JSON.stringify(relais), req.params.id]
+    );
+
+    return res.json({ success: true, relais });
+  } catch (err) {
+    console.error("ERREUR ADMIN CHANGE RELAY :", err);
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -1464,6 +1523,7 @@ ${formatCartAdmin(o.cart)}
           <td class="actions">
             <button onclick="markPaid(${o.id})">✅ Payé</button>
             <button onclick="generateLabel(${o.id})">🧾 Étiquette</button>
+            <button onclick="changeRelay(${o.id})">📍 Changer relais</button>
             <button onclick="setStatus(${o.id}, 'PREPARATION')">📦 Prépa</button>
             <button onclick="shipOrder(${o.id})">🚚 Expédiée</button>
             <button onclick="addTracking(${o.id})">🔢 Suivi</button>
@@ -1815,6 +1875,30 @@ async function generateLabel(id) {
   }
 
   alert("Étiquette générée !");
+  location.reload();
+}
+
+async function changeRelay(id) {
+  const code = prompt(
+    "Code du nouveau Point Relais (6 chiffres) :",
+    ""
+  );
+  if (!code) return;
+
+  const nom = prompt(
+    "Nom du Point Relais :",
+    "POINT RELAIS"
+  );
+  if (!nom) return;
+
+  const data = await postJSON("/admin/change-relay/" + id, { code, nom });
+
+  if (!data.success) {
+    alert(data.error || "Erreur changement de relais");
+    return;
+  }
+
+  alert("Point Relais remplacé. Tu peux maintenant générer l'étiquette.");
   location.reload();
 }
 
