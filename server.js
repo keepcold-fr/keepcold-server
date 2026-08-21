@@ -327,13 +327,29 @@ function normalizeMrPhone(value) {
 
 const MR_API2_ENDPOINT = "https://connect-api.mondialrelay.com/api/Shipment";
 
+function xmlAttribute(attributes, name) {
+  const match = String(attributes || "").match(
+    new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i")
+  );
+  return match ? decodeXml(match[1]).trim() : "";
+}
+
 function parseApi2Statuses(xml) {
-  return [...String(xml || "").matchAll(/<Status>([\s\S]*?)<\/Status>/g)]
-    .map(match => ({
-      code: xmlValue(match[1], "Code"),
-      message: xmlValue(match[1], "Message") || "Erreur Mondial Relay"
-    }))
-    .filter(status => status.code);
+  return [...String(xml || "").matchAll(
+    /<Status\b([^>]*?)(?:\/>|>([\s\S]*?)<\/Status>)/gi
+  )]
+    .map(match => {
+      const attributes = match[1] || "";
+      const content = match[2] || "";
+      return {
+        code: xmlAttribute(attributes, "Code") || xmlValue(content, "Code"),
+        message:
+          xmlAttribute(attributes, "Message") ||
+          xmlValue(content, "Message") ||
+          "Erreur Mondial Relay"
+      };
+    })
+    .filter(status => status.code && !/^(0|OK)$/i.test(status.code));
 }
 
 function describeApi2Response(body) {
