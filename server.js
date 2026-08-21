@@ -393,6 +393,15 @@ async function createMondialRelayLabel(order) {
   const api2BrandId = (process.env.MR_API2_BRAND_ID || "").trim();
   const relayNumber = normalizeRelayCode(relais);
   const relayCode = relayNumber ? `FR${relayNumber}` : "";
+  const relayDescription = [
+    relais?.information,
+    relais?.Information,
+    relais?.nom,
+    relais?.Name
+  ].filter(Boolean).join(" ");
+  const deliveryMode = /LOCKER/i.test(relayDescription)
+    ? "24R/APM"
+    : "24R";
 
   if (!email || !nom || !tel || !addr || !cp || !ville) {
     throw new Error("Infos client manquantes pour créer l'expédition");
@@ -426,12 +435,12 @@ async function createMondialRelayLabel(order) {
       <CustomerNo>1</CustomerNo>
       <ParcelCount>1</ParcelCount>
       <ShipmentValue Currency="EUR" Amount="${shipmentValue}" />
-      <DeliveryMode Mode="24R/MED" Location="${relayCode}" />
+      <DeliveryMode Mode="${deliveryMode}" Location="${relayCode}" />
       <CollectionMode Mode="REL" Location="AUTO" />
       <Parcels>
         <Parcel>
           <Content>Commande Keep Cold</Content>
-          <Weight Value="${weight}" Unit="g" />
+          <Weight Value="${weight}" Unit="gr" />
         </Parcel>
       </Parcels>
       <Sender>
@@ -467,7 +476,7 @@ async function createMondialRelayLabel(order) {
     brandId: api2BrandId,
     loginPresent: true,
     passwordPresent: true,
-    deliveryMode: "24R/MED",
+    deliveryMode,
     relayCode,
     weight
   });
@@ -636,6 +645,8 @@ const relaisTrouves = [...text.matchAll(/<PointRelais_Details>([\s\S]*?)<\/Point
   const nom = (block.match(/<LgAdr1>(.*?)<\/LgAdr1>/) || [])[1] || "";
   const cp = (block.match(/<CP>(.*?)<\/CP>/) || [])[1] || "";
   const ville = (block.match(/<Ville>(.*?)<\/Ville>/) || [])[1] || "";
+  const information =
+    (block.match(/<Information>(.*?)<\/Information>/) || [])[1] || "";
 
   return {
     num,
@@ -643,7 +654,8 @@ const relaisTrouves = [...text.matchAll(/<PointRelais_Details>([\s\S]*?)<\/Point
     code_api2: pays + num,
     nom,
     cp,
-    ville
+    ville,
+    information
   };
 });
 
