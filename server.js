@@ -325,6 +325,93 @@ function normalizeMrPhone(value) {
   return `+33${digits}`;
 }
 
+const MR_WSI2_ENDPOINT = "https://api.mondialrelay.com/WebService.asmx";
+const MR_WSI2_SIGNED_FIELDS = [
+  "Enseigne", "ModeCol", "ModeLiv", "NDossier", "NClient",
+  "Expe_Langage", "Expe_Ad1", "Expe_Ad2", "Expe_Ad3", "Expe_Ad4",
+  "Expe_Ville", "Expe_CP", "Expe_Pays", "Expe_Tel1", "Expe_Tel2", "Expe_Mail",
+  "Dest_Langage", "Dest_Ad1", "Dest_Ad2", "Dest_Ad3", "Dest_Ad4",
+  "Dest_Ville", "Dest_CP", "Dest_Pays", "Dest_Tel1", "Dest_Tel2", "Dest_Mail",
+  "Poids", "Longueur", "Taille", "NbColis", "CRT_Valeur", "CRT_Devise",
+  "Exp_Valeur", "Exp_Devise", "COL_Rel_Pays", "COL_Rel", "LIV_Rel_Pays",
+  "LIV_Rel", "TAvisage", "TReprise", "Montage", "TRDV", "Assurance", "Instructions"
+];
+
+async function callMondialRelayWsi2(data, privateKey) {
+  const security = crypto
+    .createHash("md5")
+    .update(MR_WSI2_SIGNED_FIELDS.map(field => data[field] || "").join("") + privateKey)
+    .digest("hex")
+    .toUpperCase();
+  const fieldsXml = MR_WSI2_SIGNED_FIELDS
+    .map(field => `<${field}>${escapeXml(data[field] || "")}</${field}>`)
+    .join("\n");
+  const xml = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <WSI2_CreationEtiquette xmlns="http://www.mondialrelay.fr/webservice/">
+      ${fieldsXml}
+      <Security>${security}</Security>
+      <Texte>${escapeXml(data.Texte || "")}</Texte>
+    </WSI2_CreationEtiquette>
+  </soap:Body>
+</soap:Envelope>`;
+  const response = await fetch(MR_WSI2_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/xml; charset=utf-8",
+      SOAPAction: "http://www.mondialrelay.fr/webservice/WSI2_CreationEtiquette"
+    },
+    body: xml
+  });
+  return { response, responseText: await response.text() };
+}
+
+async function diagnoseMondialRelaySignature(data, privateKey) {
+  const statusForPrefix = async count => {
+    const diagnosticData = { Texte: "" };
+    MR_WSI2_SIGNED_FIELDS.forEach((field, index) => {
+      diagnosticData[field] = index < count ? data[field] || "" : "";
+    });
+
+    // Empêche toute création d'expédition pendant ce diagnostic.
+    if (count > 1) diagnosticData.ModeCol = "ZZZ";
+
+    const { responseText } = await callMondialRelayWsi2(
+      diagnosticData,
+      privateKey
+    );
+    return xmlValue(responseText, "STAT");
+  };
+
+  const fullDiagnosticStatus = await statusForPrefix(
+    MR_WSI2_SIGNED_FIELDS.length
+  );
+  if (fullDiagnosticStatus !== "97") {
+    console.error("MONDIAL RELAY SIGNATURE DIAGNOSTIC :", {
+      result: "La signature devient valide avec un ModeCol volontairement invalide",
+      stat: fullDiagnosticStatus || null,
+      suspectedField: "ModeCol"
+    });
+    return;
+  }
+
+  let low = 1;
+  let high = MR_WSI2_SIGNED_FIELDS.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    const status = await statusForPrefix(middle);
+    if (status === "97") high = middle;
+    else low = middle + 1;
+  }
+
+  console.error("MONDIAL RELAY SIGNATURE DIAGNOSTIC :", {
+    firstFailingField: MR_WSI2_SIGNED_FIELDS[low - 1],
+    fieldPosition: low,
+    totalSignedFields: MR_WSI2_SIGNED_FIELDS.length
+  });
+}
+
 async function createMondialRelayLabel(order) {
   const { email, nom, tel, addr, cp, ville, relais, reference } = order;
   const enseigne = (process.env.MR_ENSEIGNE || "").trim();
@@ -340,7 +427,7 @@ async function createMondialRelayLabel(order) {
   }
 
   console.log("MONDIAL RELAY WSI2 CONFIG :", {
-    endpoint: "https://api.mondialrelay.com/WebService.asmx",
+    endpoint: MR_WSI2_ENDPOINT,
     enseigne,
     enseigneLength: enseigne.length,
     privateKeyPresent: true,
@@ -396,45 +483,10 @@ async function createMondialRelayLabel(order) {
     Texte: ""
   };
 
-  const signedFields = [
-    "Enseigne", "ModeCol", "ModeLiv", "NDossier", "NClient",
-    "Expe_Langage", "Expe_Ad1", "Expe_Ad2", "Expe_Ad3", "Expe_Ad4",
-    "Expe_Ville", "Expe_CP", "Expe_Pays", "Expe_Tel1", "Expe_Tel2", "Expe_Mail",
-    "Dest_Langage", "Dest_Ad1", "Dest_Ad2", "Dest_Ad3", "Dest_Ad4",
-    "Dest_Ville", "Dest_CP", "Dest_Pays", "Dest_Tel1", "Dest_Tel2", "Dest_Mail",
-    "Poids", "Longueur", "Taille", "NbColis", "CRT_Valeur", "CRT_Devise",
-    "Exp_Valeur", "Exp_Devise", "COL_Rel_Pays", "COL_Rel", "LIV_Rel_Pays",
-    "LIV_Rel", "TAvisage", "TReprise", "Montage", "TRDV", "Assurance", "Instructions"
-  ];
-  const security = crypto
-    .createHash("md5")
-    .update(signedFields.map(field => data[field]).join("") + privateKey)
-    .digest("hex")
-    .toUpperCase();
-  const fieldsXml = Object.entries(data)
-    .filter(([key]) => key !== "Texte")
-    .map(([key, value]) => `<${key}>${escapeXml(value)}</${key}>`)
-    .join("\n");
-  const xml = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <WSI2_CreationEtiquette xmlns="http://www.mondialrelay.fr/webservice/">
-      ${fieldsXml}
-      <Security>${security}</Security>
-      <Texte>${escapeXml(data.Texte)}</Texte>
-    </WSI2_CreationEtiquette>
-  </soap:Body>
-</soap:Envelope>`;
-
-  const response = await fetch("https://api.mondialrelay.com/WebService.asmx", {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/xml; charset=utf-8",
-      SOAPAction: "http://www.mondialrelay.fr/webservice/WSI2_CreationEtiquette"
-    },
-    body: xml
-  });
-  const responseText = await response.text();
+  const { response, responseText } = await callMondialRelayWsi2(
+    data,
+    privateKey
+  );
   if (!response.ok) {
     throw new Error(`Mondial Relay HTTP ${response.status}`);
   }
@@ -453,6 +505,9 @@ async function createMondialRelayLabel(order) {
   });
 
   if (status !== "0") {
+    if (status === "97") {
+      await diagnoseMondialRelaySignature(data, privateKey);
+    }
     throw new Error(`Mondial Relay a refusé l'étiquette (STAT ${status || "inconnu"})`);
   }
   if (!expeditionNumber || !labelUrl) {
