@@ -1430,17 +1430,19 @@ app.post("/admin/bulk-shipped", async (req, res) => {
 });
 
 function formatCartAdmin(cart) {
-  if (!cart) return "Panier vide";
+  if (!cart) return '<div class="cart-empty">Panier vide</div>';
 
-  const lignes = [];
+  const colonnes = { "70": [], "150": [] };
+  const autres = [];
   const produits = cart.produits || {};
 
-  Object.entries(produits).forEach(([key, qty]) => {
-    qty = Number(qty || 0);
+  Object.entries(produits).forEach(([key, rawQty]) => {
+    const qty = Number(rawQty || 0);
     if (qty <= 0) return;
 
     const parts = key.split("-");
-    const format = parts.pop();
+    const rawFormat = parts.pop() || "";
+    const format = (rawFormat.match(/\d+/) || [""])[0];
     const parfum = parts.join("-");
 
     const nom = parfum
@@ -1456,15 +1458,50 @@ function formatCartAdmin(cart) {
       .replace("pomme", "Pomme")
       .replace("gum", "Gum");
 
-    lignes.push("🧊 " + qty + " × " + nom + " " + format + " ml");
+    const ligne = `
+      <div class="cart-product">
+        <span>${nom}</span>
+        <strong>${qty}</strong>
+      </div>
+    `;
+
+    if (colonnes[format]) colonnes[format].push(ligne);
+    else autres.push(`<div class="cart-product"><span>${nom} ${rawFormat}</span><strong>${qty}</strong></div>`);
   });
 
-  const packs = cart.packs || [];
-  packs.forEach(pack => {
-    lignes.push("🎁 Pack " + pack.format + " ml - " + pack.price + " €");
-  });
+  const renderColonne = (format, titre) => `
+    <section class="cart-format">
+      <h4>${titre}</h4>
+      ${colonnes[format].length
+        ? colonnes[format].join("")
+        : '<div class="cart-empty">Aucun produit</div>'}
+    </section>
+  `;
 
-  return lignes.length ? lignes.join("\\n") : "Panier vide";
+  const packs = Array.isArray(cart.packs) ? cart.packs : [];
+  const packsHtml = packs.length
+    ? `
+      <div class="cart-packs">
+        <strong>🎁 Packs</strong>
+        ${packs.map(pack => `
+          <div>Pack ${pack.format || "-"} ml — ${pack.price || "0"} €</div>
+        `).join("")}
+      </div>
+    `
+    : "";
+
+  const autresHtml = autres.length
+    ? `<div class="cart-packs"><strong>Autres</strong>${autres.join("")}</div>`
+    : "";
+
+  return `
+    <div class="cart-grid">
+      ${renderColonne("70", "70 ml")}
+      ${renderColonne("150", "150 ml")}
+    </div>
+    ${packsHtml}
+    ${autresHtml}
+  `;
 }
     app.get("/admin", async (req, res) => {
   if (!checkAdmin(req, res)) return;
@@ -1513,9 +1550,9 @@ function formatCartAdmin(cart) {
       🧺 Voir panier
     </summary>
 
-    <pre style="white-space:pre-wrap;font-family:inherit;background:#f3fbff;padding:8px;border-radius:10px;margin-top:6px;">
-${formatCartAdmin(o.cart)}
-    </pre>
+    <div class="cart-details">
+      ${formatCartAdmin(o.cart)}
+    </div>
   </details>
 ` : ""}
 </td>
@@ -1747,6 +1784,68 @@ ${formatCartAdmin(o.cart)}
     text-align: center;
     padding: 32px;
     color: #64748b;
+  }
+
+  .cart-details {
+    background: #f3fbff;
+    padding: 8px;
+    border-radius: 10px;
+    margin-top: 6px;
+    min-width: 260px;
+  }
+
+  .cart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .cart-format {
+    overflow: hidden;
+    background: white;
+    border: 1px solid #dbeafe;
+    border-radius: 9px;
+  }
+
+  .cart-format h4 {
+    margin: 0;
+    padding: 7px;
+    text-align: center;
+    background: #0077b6;
+    color: white;
+    font-size: 12px;
+  }
+
+  .cart-product {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 7px;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 11px;
+  }
+
+  .cart-product:last-child {
+    border-bottom: none;
+  }
+
+  .cart-product strong {
+    color: #0077b6;
+  }
+
+  .cart-empty {
+    padding: 8px;
+    color: #94a3b8;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .cart-packs {
+    margin-top: 8px;
+    padding: 7px;
+    background: #fff7ed;
+    border-radius: 8px;
+    font-size: 11px;
   }
 
   @media (max-width: 700px) {
