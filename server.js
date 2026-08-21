@@ -336,6 +336,40 @@ function parseApi2Statuses(xml) {
     .filter(status => status.code);
 }
 
+function describeApi2Response(body) {
+  const text = String(body || "");
+  const tagNames = [...new Set(
+    [...text.matchAll(/<\/?([A-Za-z_][\w:.-]*)\b/g)].map(match => match[1])
+  )].slice(0, 100);
+
+  let jsonKeys = [];
+  try {
+    const parsed = JSON.parse(text);
+    const keys = new Set();
+    const visit = value => {
+      if (!value || typeof value !== "object") return;
+      if (Array.isArray(value)) {
+        value.slice(0, 3).forEach(visit);
+        return;
+      }
+      Object.entries(value).forEach(([key, child]) => {
+        keys.add(key);
+        visit(child);
+      });
+    };
+    visit(parsed);
+    jsonKeys = [...keys].slice(0, 100);
+  } catch (_) {
+    // La réponse n'est pas du JSON : les balises XML/HTML suffisent au diagnostic.
+  }
+
+  return {
+    responseLength: text.length,
+    tagNames,
+    jsonKeys
+  };
+}
+
 async function createMondialRelayLabel(order) {
   const { email, nom, tel, addr, cp, ville, relais, reference } = order;
   const api2Login = (process.env.MR_API2_LOGIN || "").trim();
@@ -450,6 +484,12 @@ async function createMondialRelayLabel(order) {
 
   console.log("MONDIAL RELAY API2 RESPONSE :", {
     httpStatus: response.status,
+    finalUrl: response.url,
+    redirected: response.redirected,
+    contentType: response.headers.get("content-type") || "",
+    contentLength: response.headers.get("content-length") || "",
+    locationPresent: !!response.headers.get("location"),
+    ...describeApi2Response(responseText),
     statuses,
     hasExpeditionNumber: !!expeditionNumber,
     hasPdfUrl: !!pdfUrl
