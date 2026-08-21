@@ -325,196 +325,147 @@ function normalizeMrPhone(value) {
   return `+33${digits}`;
 }
 
-const MR_WSI2_ENDPOINT = "https://api.mondialrelay.com/WebService.asmx";
-const MR_WSI2_SIGNED_FIELDS = [
-  "Enseigne", "ModeCol", "ModeLiv", "NDossier", "NClient",
-  "Expe_Langage", "Expe_Ad1", "Expe_Ad2", "Expe_Ad3", "Expe_Ad4",
-  "Expe_Ville", "Expe_CP", "Expe_Pays", "Expe_Tel1", "Expe_Tel2", "Expe_Mail",
-  "Dest_Langage", "Dest_Ad1", "Dest_Ad2", "Dest_Ad3", "Dest_Ad4",
-  "Dest_Ville", "Dest_CP", "Dest_Pays", "Dest_Tel1", "Dest_Tel2", "Dest_Mail",
-  "Poids", "Longueur", "Taille", "NbColis", "CRT_Valeur", "CRT_Devise",
-  "Exp_Valeur", "Exp_Devise", "COL_Rel_Pays", "COL_Rel", "LIV_Rel_Pays",
-  "LIV_Rel", "TAvisage", "TReprise", "Montage", "TRDV", "Assurance", "Instructions"
-];
+const MR_API2_ENDPOINT = "https://connect-api.mondialrelay.com/api/Shipment";
 
-async function callMondialRelayWsi2(data, privateKey) {
-  const security = crypto
-    .createHash("md5")
-    .update(MR_WSI2_SIGNED_FIELDS.map(field => data[field] || "").join("") + privateKey)
-    .digest("hex")
-    .toUpperCase();
-  const fieldsXml = MR_WSI2_SIGNED_FIELDS
-    .map(field => `<${field}>${escapeXml(data[field] || "")}</${field}>`)
-    .join("\n");
-  const xml = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <WSI2_CreationEtiquette xmlns="http://www.mondialrelay.fr/webservice/">
-      ${fieldsXml}
-      <Security>${security}</Security>
-      <Texte>${escapeXml(data.Texte || "")}</Texte>
-    </WSI2_CreationEtiquette>
-  </soap:Body>
-</soap:Envelope>`;
-  const response = await fetch(MR_WSI2_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/xml; charset=utf-8",
-      SOAPAction: "http://www.mondialrelay.fr/webservice/WSI2_CreationEtiquette"
-    },
-    body: xml
-  });
-  return { response, responseText: await response.text() };
-}
-
-async function diagnoseMondialRelaySignature(data, privateKey) {
-  const statusForPrefix = async count => {
-    const diagnosticData = { Texte: "" };
-    MR_WSI2_SIGNED_FIELDS.forEach((field, index) => {
-      diagnosticData[field] = index < count ? data[field] || "" : "";
-    });
-
-    // Empêche toute création d'expédition pendant ce diagnostic.
-    if (count > 1) diagnosticData.ModeCol = "ZZZ";
-
-    const { responseText } = await callMondialRelayWsi2(
-      diagnosticData,
-      privateKey
-    );
-    return xmlValue(responseText, "STAT");
-  };
-
-  const fullDiagnosticStatus = await statusForPrefix(
-    MR_WSI2_SIGNED_FIELDS.length
-  );
-  if (fullDiagnosticStatus !== "97") {
-    console.error("MONDIAL RELAY SIGNATURE DIAGNOSTIC :", {
-      result: "La signature devient valide avec un ModeCol volontairement invalide",
-      stat: fullDiagnosticStatus || null,
-      suspectedField: "ModeCol"
-    });
-    return;
-  }
-
-  let low = 1;
-  let high = MR_WSI2_SIGNED_FIELDS.length;
-  while (low < high) {
-    const middle = Math.floor((low + high) / 2);
-    const status = await statusForPrefix(middle);
-    if (status === "97") high = middle;
-    else low = middle + 1;
-  }
-
-  console.error("MONDIAL RELAY SIGNATURE DIAGNOSTIC :", {
-    firstFailingField: MR_WSI2_SIGNED_FIELDS[low - 1],
-    fieldPosition: low,
-    totalSignedFields: MR_WSI2_SIGNED_FIELDS.length
-  });
+function parseApi2Statuses(xml) {
+  return [...String(xml || "").matchAll(/<Status>([\s\S]*?)<\/Status>/g)]
+    .map(match => ({
+      code: xmlValue(match[1], "Code"),
+      message: xmlValue(match[1], "Message") || "Erreur Mondial Relay"
+    }))
+    .filter(status => status.code);
 }
 
 async function createMondialRelayLabel(order) {
   const { email, nom, tel, addr, cp, ville, relais, reference } = order;
-  const enseigne = (process.env.MR_ENSEIGNE || "").trim();
-  const privateKey = (process.env.MR_PRIVATE_KEY || "").trim();
-  const relayCode = normalizeRelayCode(relais);
+  const api2Login = (process.env.MR_API2_LOGIN || "").trim();
+  const api2Password = (process.env.MR_API2_PASSWORD || "").trim();
+  const api2BrandId = (process.env.MR_API2_BRAND_ID || "").trim();
+  const relayNumber = normalizeRelayCode(relais);
+  const relayCode = relayNumber ? `FR${relayNumber}` : "";
 
   if (!email || !nom || !tel || !addr || !cp || !ville) {
     throw new Error("Infos client manquantes pour créer l'expédition");
   }
-  if (!relayCode) throw new Error("Code point relais manquant");
-  if (!enseigne || !privateKey) {
-    throw new Error("Configuration Mondial Relay manquante");
+  if (!relayNumber || !/^[0-9]{6}$/.test(relayNumber)) {
+    throw new Error("Code point relais invalide");
+  }
+  if (!api2Login || !api2Password || !api2BrandId) {
+    throw new Error("Configuration Mondial Relay API2 manquante");
   }
 
-  console.log("MONDIAL RELAY WSI2 CONFIG :", {
-    endpoint: MR_WSI2_ENDPOINT,
-    enseigne,
-    enseigneLength: enseigne.length,
-    privateKeyPresent: true,
-    privateKeyLength: privateKey.length
+  const orderNo = normalizeMrText(reference || `KC-${Date.now()}`, 15);
+  const weight = Math.round(Number(order.weight || 2000));
+  const shipmentValue = Number(order.amount || 0).toFixed(2);
+  const xml = `<?xml version="1.0" encoding="utf-8"?>
+<ShipmentCreationRequest xmlns="http://www.example.org/Request">
+  <Context>
+    <Login>${escapeXml(api2Login)}</Login>
+    <Password>${escapeXml(api2Password)}</Password>
+    <CustomerId>${escapeXml(api2BrandId)}</CustomerId>
+    <Culture>fr-FR</Culture>
+    <VersionAPI>1.0</VersionAPI>
+  </Context>
+  <OutputOptions>
+    <OutputFormat>PDF</OutputFormat>
+    <OutputType>PdfUrl</OutputType>
+  </OutputOptions>
+  <ShipmentsList>
+    <Shipment>
+      <OrderNo>${escapeXml(orderNo)}</OrderNo>
+      <CustomerNo>1</CustomerNo>
+      <ParcelCount>1</ParcelCount>
+      <ShipmentValue Currency="EUR" Amount="${shipmentValue}" />
+      <DeliveryMode Mode="24R" Location="${relayCode}" />
+      <CollectionMode Mode="REL" Location="AUTO" />
+      <Parcels>
+        <Parcel>
+          <Content>Commande Keep Cold</Content>
+          <Weight Value="${weight}" Unit="g" />
+        </Parcel>
+      </Parcels>
+      <Sender>
+        <Address>
+          <Firstname>Jerome</Firstname>
+          <Lastname>Carrio</Lastname>
+          <Streetname>36 RUE ANDRE AUDOLI</Streetname>
+          <CountryCode>FR</CountryCode>
+          <PostCode>13010</PostCode>
+          <City>MARSEILLE</City>
+          <MobileNo>+33624947059</MobileNo>
+          <Email>contact@keepcold.fr</Email>
+        </Address>
+      </Sender>
+      <Recipient>
+        <Address>
+          <Firstname>${escapeXml(normalizeMrText(nom, 32))}</Firstname>
+          <Lastname>CLIENT</Lastname>
+          <Streetname>${escapeXml(normalizeMrText(addr, 32))}</Streetname>
+          <CountryCode>FR</CountryCode>
+          <PostCode>${escapeXml(String(cp).replace(/\s/g, ""))}</PostCode>
+          <City>${escapeXml(normalizeMrText(ville, 26))}</City>
+          <MobileNo>${escapeXml(normalizeMrPhone(tel))}</MobileNo>
+          <Email>${escapeXml(String(email).trim())}</Email>
+        </Address>
+      </Recipient>
+    </Shipment>
+  </ShipmentsList>
+</ShipmentCreationRequest>`;
+
+  console.log("MONDIAL RELAY API2 REQUEST :", {
+    endpoint: MR_API2_ENDPOINT,
+    brandId: api2BrandId,
+    loginPresent: true,
+    passwordPresent: true,
+    relayCode,
+    weight
   });
 
-  const data = {
-    Enseigne: enseigne,
-    ModeCol: "REL",
-    ModeLiv: "24R",
-    NDossier: normalizeMrText(reference || Date.now(), 15),
-    NClient: "1",
-    Expe_Langage: "FR",
-    Expe_Ad1: "JEROME CARRIO",
-    Expe_Ad2: "",
-    Expe_Ad3: "36 RUE ANDRE AUDOLI",
-    Expe_Ad4: "",
-    Expe_Ville: "MARSEILLE",
-    Expe_CP: "13010",
-    Expe_Pays: "FR",
-    Expe_Tel1: "+33624947059",
-    Expe_Tel2: "",
-    Expe_Mail: "contact@keepcold.fr",
-    Dest_Langage: "FR",
-    Dest_Ad1: normalizeMrText(nom, 32),
-    Dest_Ad2: "",
-    Dest_Ad3: normalizeMrText(addr, 32),
-    Dest_Ad4: "",
-    Dest_Ville: normalizeMrText(ville, 26),
-    Dest_CP: String(cp).replace(/\s/g, "").slice(0, 10),
-    Dest_Pays: "FR",
-    Dest_Tel1: normalizeMrPhone(tel),
-    Dest_Tel2: "",
-    Dest_Mail: String(email).trim().slice(0, 70),
-    Poids: String(Number(order.weight || 5000)),
-    Longueur: "",
-    Taille: "",
-    NbColis: "1",
-    CRT_Valeur: "0",
-    CRT_Devise: "EUR",
-    Exp_Valeur: String(Math.round(Number(order.amount || 0) * 100)),
-    Exp_Devise: "EUR",
-    COL_Rel_Pays: "FR",
-    COL_Rel: "AUTO",
-    LIV_Rel_Pays: "FR",
-    LIV_Rel: relayCode,
-    TAvisage: "",
-    TReprise: "",
-    Montage: "",
-    TRDV: "",
-    Assurance: "0",
-    Instructions: "COMMANDE KEEP COLD",
-    Texte: ""
-  };
-
-  const { response, responseText } = await callMondialRelayWsi2(
-    data,
-    privateKey
-  );
-  if (!response.ok) {
-    throw new Error(`Mondial Relay HTTP ${response.status}`);
-  }
-
-  const status = xmlValue(responseText, "STAT");
-  const expeditionNumber = xmlValue(responseText, "ExpeditionNum");
-  const labelUrl = normalizeMondialRelayLabelUrl(
+  const response = await fetch(MR_API2_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Accept: "application/xml",
+      "Content-Type": "text/xml; charset=utf-8",
+      Authorization: "Basic " + Buffer.from(
+        `${api2Login}:${api2Password}`
+      ).toString("base64")
+    },
+    body: xml
+  });
+  const responseText = await response.text();
+  const statuses = parseApi2Statuses(responseText);
+  const expeditionNumber =
+    xmlValue(responseText, "ShipmentNumber") ||
+    xmlValue(responseText, "ExpeditionNum") ||
+    xmlValue(responseText, "ExpeditionNumber");
+  const pdfValue = (
+    xmlValue(responseText, "Output") ||
+    xmlValue(responseText, "URL_Pdf") ||
+    xmlValue(responseText, "PdfUrl") ||
     xmlValue(responseText, "URL_Etiquette")
-  );
+  ).replace(/^<!\[CDATA\[|\]\]>$/g, "").trim();
+  const pdfUrl = /^https?:\/\//i.test(pdfValue)
+    ? pdfValue
+    : "";
 
-  console.log("MONDIAL RELAY WSI2 RESPONSE :", {
+  console.log("MONDIAL RELAY API2 RESPONSE :", {
     httpStatus: response.status,
-    stat: status || null,
+    statuses,
     hasExpeditionNumber: !!expeditionNumber,
-    hasLabelUrl: !!labelUrl
+    hasPdfUrl: !!pdfUrl
   });
 
-  if (status !== "0") {
-    if (status === "97") {
-      await diagnoseMondialRelaySignature(data, privateKey);
-    }
-    throw new Error(`Mondial Relay a refusé l'étiquette (STAT ${status || "inconnu"})`);
+  if (!response.ok || statuses.length) {
+    const details = statuses.length
+      ? statuses.map(status => `${status.code}: ${status.message}`).join(" | ")
+      : `HTTP ${response.status}`;
+    throw new Error(`Mondial Relay API2 a refusé l'étiquette (${details})`);
   }
-  if (!expeditionNumber || !labelUrl) {
-    throw new Error("Mondial Relay n'a pas retourné de PDF d'étiquette");
+  if (!expeditionNumber || !pdfUrl) {
+    throw new Error("Mondial Relay API2 n'a pas retourné le numéro et le PDF");
   }
 
-  const pdfResponse = await fetch(labelUrl);
+  const pdfResponse = await fetch(pdfUrl);
   const contentType = pdfResponse.headers.get("content-type") || "";
   const pdfSignature = pdfResponse.ok
     ? Buffer.from(await pdfResponse.arrayBuffer()).subarray(0, 4).toString()
@@ -526,7 +477,7 @@ async function createMondialRelayLabel(order) {
     throw new Error("Le PDF Mondial Relay retourné est inaccessible");
   }
 
-  return { expeditionNumber, pdfUrl: labelUrl };
+  return { expeditionNumber, pdfUrl };
 }
 
 /* =========================
