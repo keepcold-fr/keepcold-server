@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Keep Cold – Parfums & commande</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue-soft: #dbeafe;
+      --blue-dark: #0f172a;
+      --mint: #22c55e;
+      --muted: #4b5563;
+      --radius: 1.1rem;
+      --shadow: 0 14px 30px rgba(15, 23, 42, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.45), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.35), transparent 55%),
+        #e5f2ff;
+      color: #0f172a;
+      line-height: 1.6;
+    }
+
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* HEADER SIMPLE */
+    header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0.7rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo img {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      object-fit: cover;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.55);
+    }
+
+    .logo-text {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .nav-links a {
+      margin-left: 0.8rem;
+      font-size: 0.9rem;
+      text-decoration: none;
+      color: #4b5563;
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    .nav-links a:hover {
+      background: #e0f2fe;
+      color: #1d4ed8;
+    }
+
+    main { flex: 1; }
+
+    .section {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .title {
+      font-size: 1.4rem;
+      margin-bottom: 0.4rem;
+      color: var(--blue-dark);
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 1.2rem;
+    }
+
+    /* CARDS PARFUMS */
+    .flavors-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.8rem;
+    }
+
+    .flavor-card {
+      background: #ffffff;
+      border-radius: 0.9rem;
+      border: 1px solid #e5e7eb;
+      padding: 0.9rem 1rem;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .flavor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .flavor-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .flavor-name {
+      font-size: 0.98rem;
+      font-weight: 600;
+    }
+
+    .flavor-note {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .flavor-tag {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      white-space: nowrap;
+    }
+
+    .pack-controls {
+      margin-top: 0.3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+    }
+
+    .pack-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pack-label {
+      color: var(--muted);
+    }
+
+    .qty-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: #f9fafb;
+      border-radius: 999px;
+      padding: 0.15rem 0.45rem;
+      border: 1px solid #e5e7eb;
+    }
+
+    .qty-control button {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: none;
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .qty-control button:active { transform: scale(0.95); }
+
+    .qty-control span {
+      min-width: 1.3rem;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+
+    /* RÉCAP PANIER */
+    .card {
+      margin-top: 1.4rem;
+      background: #ffffff;
+      border-radius: var(--radius);
+      border: 1px solid #e5e7eb;
+      padding: 1rem;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      color: var(--blue-dark);
+      margin-bottom: 0.4rem;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 0.6rem 1.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(120deg, #2563eb, #22c55e);
+      color: #f9fafb;
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.5);
+    }
+
+    footer {
+      border-top: 1px solid #e5e7eb;
+      background: rgba(255, 255, 255, 0.96);
+      padding: 1rem;
+      font-size: 0.8rem;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .flavors-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 960px) {
+      .flavors-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <nav class="nav">
+      <div class="logo">
+        <img src="logo-keep-cold.png" alt="Logo Keep Cold">
+        <div class="logo-text">KEEP COLD</div>
+      </div>
+      <div class="nav-links">
+        <a href="index.html">Accueil</a>
+        <a href="parfums.html">Parfums</a>
+        <a href="packs.html">Packs</a>
+        <a href="qui-sommes-nous.html">Qui sommes-nous</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="section">
+      <h1 class="title">Parfums & composition de ta commande</h1>
+      <p class="subtitle">
+        Chaque sachet contient <strong>12 glaces à l’eau</strong>.  
+        Sachet 70ml = <strong>3€</strong> • Sachet 150ml = <strong>5€</strong>.  
+        Choisis le nombre de sachets par parfum et par format, puis envoie ta commande sur WhatsApp.
+      </p>
+
+      <!-- GRID DES PARFUMS -->
+      <div class="flavors-grid">
+        <!-- Coca -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Coca 🥤</div>
+              <div class="flavor-note">Le classique incontournable en version glacée.</div>
+            </div>
+            <div class="flavor-tag">Best-seller</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('coca','70',-1)">−</button>
+                <span id="qty-coca-70">0</span>
+                <button type="button" onclick="changeQty('coca','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('coca','150',-1)">−</button>
+                <span id="qty-coca-150">0</span>
+                <button type="button" onclick="changeQty('coca','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Fraise -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Fraise 🍓</div>
+              <div class="flavor-note">Fruitée et douce, elle plaît à tout le monde.</div>
+            </div>
+            <div class="flavor-tag">Indémodable</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('fraise','70',-1)">−</button>
+                <span id="qty-fraise-70">0</span>
+                <button type="button" onclick="changeQty('fraise','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('fraise','150',-1)">−</button>
+                <span id="qty-fraise-150">0</span>
+                <button type="button" onclick="changeQty('fraise','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Menthe -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Menthe 🌿</div>
+              <div class="flavor-note">Ultra rafraîchissante, parfaite en plein soleil.</div>
+            </div>
+            <div class="flavor-tag">Très frais</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('menthe','70',-1)">−</button>
+                <span id="qty-menthe-70">0</span>
+                <button type="button" onclick="changeQty('menthe','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('menthe','150',-1)">−</button>
+                <span id="qty-menthe-150">0</span>
+                <button type="button" onclick="changeQty('menthe','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Citron -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Citron 🍋</div>
+              <div class="flavor-note">Acidulé comme il faut, léger et désaltérant.</div>
+            </div>
+            <div class="flavor-tag">Acidulé</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('citron','70',-1)">−</button>
+                <span id="qty-citron-70">0</span>
+                <button type="button" onclick="changeQty('citron','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('citron','150',-1)">−</button>
+                <span id="qty-citron-150">0</span>
+                <button type="button" onclick="changeQty('citron','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Passion -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Passion 🥭</div>
+              <div class="flavor-note">Une touche exotique pour voyager en une bouchée.</div>
+            </div>
+            <div class="flavor-tag">Exotique</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('passion','70',-1)">−</button>
+                <span id="qty-passion-70">0</span>
+                <button type="button" onclick="changeQty('passion','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('passion','150',-1)">−</button>
+                <span id="qty-passion-150">0</span>
+                <button type="button" onclick="changeQty('passion','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Anis -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Anis ⭐</div>
+              <div class="flavor-note">Pour ceux qui aiment les goûts marqués.</div>
+            </div>
+            <div class="flavor-tag">Original</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('anis','70',-1)">−</button>
+                <span id="qty-anis-70">0</span>
+                <button type="button" onclick="changeQty('anis','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('anis','150',-1)">−</button>
+                <span id="qty-anis-150">0</span>
+                <button type="button" onclick="changeQty('anis','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Cerise -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Cerise 🍒</div>
+              <div class="flavor-note">Gourmand et fruité, simple et efficace.</div>
+            </div>
+            <div class="flavor-tag">Fruit rouge</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('cerise','70',-1)">−</button>
+                <span id="qty-cerise-70">0</span>
+                <button type="button" onclick="changeQty('cerise','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('cerise','150',-1)">−</button>
+                <span id="qty-cerise-150">0</span>
+                <button type="button" onclick="changeQty('cerise','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Gum -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Gum 🍬</div>
+              <div class="flavor-note">Goût chewing-gum, fun et coloré.</div>
+            </div>
+            <div class="flavor-tag">Fun</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('gum','70',-1)">−</button>
+                <span id="qty-gum-70">0</span>
+                <button type="button" onclick="changeQty('gum','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('gum','150',-1)">−</button>
+                <span id="qty-gum-150">0</span>
+                <button type="button" onclick="changeQty('gum','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Melon -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Melon 🍈</div>
+              <div class="flavor-note">Doux et parfumé, parfait pour l’été.</div>
+            </div>
+            <div class="flavor-tag">Fruité</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('melon','70',-1)">−</button>
+                <span id="qty-melon-70">0</span>
+                <button type="button" onclick="changeQty('melon','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('melon','150',-1)">−</button>
+                <span id="qty-melon-150">0</span>
+                <button type="button" onclick="changeQty('melon','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Pomme -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Pomme 🍏</div>
+              <div class="flavor-note">Simple, frais, qui passe partout.</div>
+            </div>
+            <div class="flavor-tag">Classique</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('pomme','70',-1)">−</button>
+                <span id="qty-pomme-70">0</span>
+                <button type="button" onclick="changeQty('pomme','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('pomme','150',-1)">−</button>
+                <span id="qty-pomme-150">0</span>
+                <button type="button" onclick="changeQty('pomme','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- RÉCAP PANIER -->
+      <div class="card">
+        <h3>Récap de ta commande</h3>
+        <p><strong>Sachets 70ml :</strong> <span id="total-70">0</span></p>
+        <p><strong>Sachets 150ml :</strong> <span id="total-150">0</span></p>
+        <p style="margin-top:0.4rem;"><strong>Total estimé :</strong> <span id="total-euros">0,00 €</span></p>
+
+        <button class="btn btn-primary" type="button" onclick="prepareWhatsApp()">
+          Envoyer ma commande sur WhatsApp
+        </button>
+
+        <p style="font-size:0.8rem; margin-top:0.4rem; color:var(--muted);">
+          Le message s’ouvre dans WhatsApp, tu peux le relire et l’envoyer.  
+          Le paiement pourra ensuite se faire par lien SumUp.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    © <span id="year"></span> Keep Cold - Glaces à l'eau.
+  </footer>
+</div>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  // PANIER
+  const cart = {};
+  const PRICE_70 = 3;
+  const PRICE_150 = 5;
+
+  function changeQty(flavorKey, sizeKey, delta) {
+    const id = flavorKey + "-" + sizeKey;
+    const span = document.getElementById("qty-" + flavorKey + "-" + sizeKey);
+    let q = parseInt(span.textContent, 10) || 0;
+    q += delta;
+    if (q < 0) q = 0;
+    span.textContent = q;
+    cart[id] = q;
+    updateCartSummary();
+  }
+
+  function updateCartSummary() {
+    let total70 = 0, total150 = 0, totalEuros = 0;
+
+    for (const key in cart) {
+      const qty = cart[key];
+      if (!qty) continue;
+      const parts = key.split("-");
+      const size = parts[1];
+
+      if (size === "70") {
+        total70 += qty;
+        totalEuros += qty * PRICE_70;
+      } else if (size === "150") {
+        total150 += qty;
+        totalEuros += qty * PRICE_150;
+      }
+    }
+
+    document.getElementById("total-70").textContent = total70;
+    document.getElementById("total-150").textContent = total150;
+    document.getElementById("total-euros").textContent =
+      totalEuros.toFixed(2).replace(".", ",") + " €";
+  }
+
+  function prepareWhatsApp() {
+    const flavorNames = {
+      coca: "Coca",
+      fraise: "Fraise",
+      menthe: "Menthe",
+      citron: "Citron",
+      passion: "Passion",
+      anis: "Anis",
+      cerise: "Cerise",
+      gum: "Gum",
+      melon: "Melon",
+      pomme: "Pomme",
+    };
+
+    let msg = "Bonjour, je souhaite commander des glaces Keep Cold :\n\n";
+    let total70 = 0, total150 = 0, totalEuros = 0;
+    let hasItem = false;
+
+    for (const key in cart) {
+      const qty = cart[key];
+      if (!qty) continue;
+      hasItem = true;
+
+      const parts = key.split("-");
+      const flavorKey = parts[0];
+      const size = parts[1];
+
+      const sizeLabel = size === "70"
+        ? "70ml (sachet de 12)"
+        : "150ml (sachet de 12)";
+      const price = size === "70" ? PRICE_70 : PRICE_150;
+      const lineTotal = qty * price;
+
+      msg += `- ${qty} × ${flavorNames[flavorKey] || flavorKey} ${sizeLabel} (${lineTotal.toFixed(2)} €)\n`;
+
+      if (size === "70") total70 += qty; else total150 += qty;
+      totalEuros += lineTotal;
+    }
+
+    if (!hasItem) {
+      alert("Ajoute au moins un sachet à ta commande avant d'envoyer 😉");
+      return;
+    }
+
+    msg += `\nTotal sachets 70ml : ${total70}`;
+    msg += `\nTotal sachets 150ml : ${total150}`;
+    msg += `\nTotal estimé : ${totalEuros.toFixed(2)} €`;
+
+    const phone = "33624947059";
+    const url = "https://api.whatsapp.com/send?phone=" + phone +
+                "&text=" + encodeURIComponent(msg);
+
+    window.location.href = url;
+  }
+</script>
+
+</body>
+</html>
