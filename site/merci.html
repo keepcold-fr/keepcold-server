@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Commande confirmée - Keep Cold</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, Arial, sans-serif;
+      background: linear-gradient(135deg, #dbeafe, #ccfbf1);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0f172a;
+      padding: 20px;
+    }
+
+    .box {
+      background: white;
+      max-width: 520px;
+      width: 100%;
+      padding: 28px;
+      border-radius: 28px;
+      box-shadow: 0 20px 45px rgba(15,23,42,.18);
+      text-align: center;
+    }
+
+    .icon {
+      font-size: 54px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 28px;
+    }
+
+    p {
+      color: #475569;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .btn {
+      margin-top: 22px;
+      display: inline-block;
+      padding: 14px 24px;
+      border-radius: 999px;
+      background: linear-gradient(120deg, #2563eb, #22c55e);
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      box-shadow: 0 12px 25px rgba(37,99,235,.35);
+    }
+
+    .small {
+      margin-top: 18px;
+      font-size: 13px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="box">
+    <div class="icon">✅</div>
+
+    <h1 id="payment-title">
+Vérification du paiement...
+</h1>
+
+    <p id="payment-text">
+Merci de patienter quelques secondes.
+</p>
+
+    <a class="btn" href="index.html">Retour à l’accueil</a>
+
+    <div class="small">
+      Keep Cold — Glaces à l’eau
+    </div>
+  </div>
+<script>
+const checkoutId =
+  localStorage.getItem("checkout_id") ||
+  new URLSearchParams(window.location.search).get("checkout_id") ||
+  new URLSearchParams(window.location.search).get("checkoutId");
+
+async function verifyPayment() {
+  if (!checkoutId) {
+    document.getElementById("payment-title").innerText = "❌ Paiement introuvable";
+    document.getElementById("payment-text").innerText = "Aucune commande n'a été détectée.";
+    return;
+  }
+
+  try {
+    const res = await fetch("https://keepcold-server.onrender.com/verify-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ checkout_id: checkoutId })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      localStorage.removeItem("keepcold-cart");
+      localStorage.removeItem("keepcold-packs");
+      localStorage.removeItem("cart");
+      localStorage.removeItem("packs");
+      localStorage.removeItem("checkout_id");
+
+      document.getElementById("payment-title").innerText = "✅ Paiement confirmé";
+      document.getElementById("payment-text").innerText =
+        "Merci pour ta commande Keep Cold ! Nous préparons ta commande.";
+    } else {
+      document.getElementById("payment-title").innerText = "❌ Paiement non finalisé";
+      document.getElementById("payment-text").innerText =
+        "Le paiement n'a pas été validé. Tu peux retourner au panier.";
+    }
+
+  } catch (err) {
+    document.getElementById("payment-title").innerText = "Erreur";
+    document.getElementById("payment-text").innerText =
+      "Impossible de vérifier le paiement pour le moment.";
+  }
+}
+
+verifyPayment();
+</script>
+</body>
+</html>

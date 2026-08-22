@@ -1,0 +1,2565 @@
+
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Keep Cold - Glaces à l'eau</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Keep Cold - glaces à l'eau à Roquefort-la-Bédoule. Sachets de 12 glaces à l'eau, formats 70ml et 150ml, 10 parfums." />
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue-soft: #dbeafe;
+      --blue-dark: #0f172a;
+      --mint: #22c55e;
+      --muted: #4b5563;
+      --radius: 1.1rem;
+      --shadow: 0 14px 30px rgba(15, 23, 42, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.45), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.35), transparent 55%),
+        #e5f2ff;
+      color: #0f172a;
+      line-height: 1.6;
+      transition: background-color 0.2s ease-out;
+    }
+
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* HEADER */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .nav {
+      max-width: 1000px;
+      margin: 0.3rem auto;
+      padding: 0.5rem 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+      border: 1px solid #e5e7eb;
+      position: relative;
+      z-index: 40;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .logo-img {
+      width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      object-fit: cover;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.55);
+      border: 2px solid #e5f2ff;
+      flex-shrink: 0;
+    }
+
+    .logo-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .logo-sub {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      padding: 0.15rem;
+      border-radius: 999px;
+      background: #eff6ff;
+    }
+
+    .nav-link {
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      color: #4b5563;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background 150ms ease-out, border 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover {
+      background: white;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .nav-cta {
+      display: none;
+      border-radius: 999px;
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(120deg, #2563eb, #22c55e);
+      color: white;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.5);
+      white-space: nowrap;
+    }
+
+    /* HAMBURGER */
+    .nav-toggle {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      width: 28px;
+      height: 24px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+
+    .nav-toggle span {
+      height: 3px;
+      border-radius: 999px;
+      background: #0f172a;
+      width: 100%;
+      transition: transform 150ms ease-out, opacity 150ms ease-out;
+    }
+
+    body.menu-open .nav-toggle span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+    body.menu-open .nav-toggle span:nth-child(2) {
+      opacity: 0;
+    }
+    body.menu-open .nav-toggle span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    /* OVERLAY quand le menu est ouvert */
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease-out;
+      z-index: 25;
+    }
+
+    body.menu-open .menu-overlay {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* SECTIONS GÉNÉRALES */
+    main { flex: 1; }
+
+    .section {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2.4rem 1rem;
+    }
+
+    .title {
+      font-size: 1.35rem;
+      margin-bottom: 0.4rem;
+      color: var(--blue-dark);
+    }
+
+    .subtitle {
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin-bottom: 1.2rem;
+    }
+
+/* HERO BANNIÈRE */
+.hero {
+  padding-top: 1.8rem;
+  padding-bottom: 1.5rem;
+}
+
+.hero-banner-wrap {
+  position: relative;
+  margin-top: 0.4rem;
+  border-radius: 1.4rem;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: radial-gradient(circle at top, #0ea5e9 0, #0369a1 40%, #020617 100%);
+}
+
+/* reflet qui glisse une fois sur la bannière */
+.hero-banner-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle at 0 50%, rgba(255,255,255,0.7), transparent 60%);
+  opacity: 0;
+  transform: translateX(-40%);
+  pointer-events: none;
+  z-index: 2;
+  animation: kcShine 1.4s ease-out 0.4s forwards;
+}
+
+.hero-banner {
+  width: 100%;
+  display: block;
+  height: auto;
+  opacity: 0;
+  transform: scale(1.06) translateY(20px);
+  filter: drop-shadow(0 10px 24px rgba(0,0,0,0.25));
+  animation: kcBannerIn 0.9s ease-out 0.15s forwards;
+}
+
+/* petit effet vague/glace sous la bannière */
+.hero-wave {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 72px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.hero-wave svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-wave .wave-back {
+  animation: waveFloatBack 7s ease-in-out infinite;
+}
+
+.hero-wave .wave-front {
+  animation: waveFloatFront 4.5s ease-in-out infinite;
+}
+
+.hero-bottom {
+  margin-top: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.hero-text {
+  font-size: 0.95rem;
+  color: var(--muted);
+  max-width: 34rem;
+}
+
+.hero-text strong {
+  color: var(--blue-dark);
+    }
+
+.hero-buttons {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+@keyframes kcBannerIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.08) translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes kcShine {
+  0% {
+    opacity: 0;
+    transform: translateX(-40%);
+  }
+  40% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(40%);
+  }
+}
+
+@keyframes waveFloatFront {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes waveFloatBack {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-10px);
+  }
+}
+
+    .btn {
+      border-radius: 999px;
+      padding: 0.6rem 1.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(120deg, #2563eb, #22c55e);
+      color: #f9fafb;
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-outline {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      color: #0f172a;
+    }
+
+    /* Bandeau infos rapides */
+    .info-strip {
+      margin-top: 0.8rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      font-size: 0.8rem;
+      color: #0f172a;
+    }
+
+    .info-pill {
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.9);
+      border: 1px dashed #bfdbfe;
+    }
+
+    /* FORMATS / PACKS */
+    .formats-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1rem;
+    }
+
+    .format {
+      background: #ffffff;
+      border-radius: var(--radius);
+      border: 1px solid #e5e7eb;
+      padding: 1rem;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+    }
+
+    .format-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.4rem;
+    }
+
+    .format-name { font-weight: 600; }
+    .format-price { font-weight: 700; color: #16a34a; }
+    .format p { font-size: 0.9rem; color: var(--muted); }
+
+    /* PARFUMS + COMMANDE */
+    .flavors-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.8rem;
+    }
+
+    .flavor-card {
+      background: #ffffff;
+      border-radius: 0.9rem;
+      border: 1px solid #e5e7eb;
+      padding: 0.8rem 0.9rem;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .flavor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+    }
+
+    .flavor-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .flavor-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .flavor-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .flavor-tag {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      white-space: nowrap;
+    }
+
+    .pack-controls {
+      margin-top: 0.3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+    }
+
+    .pack-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pack-label {
+      color: var(--muted);
+    }
+
+    .qty-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: #f9fafb;
+      border-radius: 999px;
+      padding: 0.15rem 0.4rem;
+      border: 1px solid #e5e7eb;
+    }
+
+    .qty-control button {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: none;
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .qty-control button:active {
+      transform: scale(0.95);
+    }
+
+    .qty-control span {
+      min-width: 1.2rem;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+
+    /* CART / RECAP */
+    .cart-summary {
+      margin-top: 1.4rem;
+    }
+
+    /* CONTACT / ABOUT */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1rem;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: var(--radius);
+      border: 1px solid #e5e7eb;
+      padding: 1rem;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      color: var(--blue-dark);
+      margin-bottom: 0.4rem;
+    }
+
+    .input, .textarea {
+      width: 100%;
+      border-radius: 0.75rem;
+      border: 1px solid #d1d5db;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.88rem;
+      outline: none;
+      resize: vertical;
+      margin-bottom: 0.5rem;
+    }
+
+    .input:focus, .textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.5);
+      background: #ffffff;
+    }
+
+    footer {
+      border-top: 1px solid #e5e7eb;
+      background: rgba(255, 255, 255, 0.96);
+      padding: 1rem;
+      font-size: 0.8rem;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    /* --------- MOBILE : MENU HAMBURGER --------- */
+    @media (max-width: 480px) {
+      .logo-img {
+        width: 44px;
+        height: 44px;
+      }
+
+      .logo-title {
+        font-size: 0.95rem;
+      }
+
+      .logo-sub {
+        font-size: 0.75rem;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .nav {
+        border-radius: 0.9rem;
+      }
+
+      .nav-links {
+        position: fixed;
+        top: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: flex-start;
+        background: rgba(255, 255, 255, 0.98);
+        padding: 4.5rem 1.5rem 1.5rem;
+        border-radius: 1rem 0 0 1rem;
+        box-shadow: -6px 8px 26px rgba(15, 23, 42, 0.35);
+        transform: translateX(100%);
+        transition: transform 0.18s ease-out;
+        width: 70%;
+        max-width: 280px;
+        z-index: 35;
+      }
+
+      body.menu-open .nav-links {
+        transform: translateX(0);
+      }
+
+      .nav-link {
+        padding: 0.5rem 0.4rem;
+        width: 100%;
+      }
+
+      .nav-right {
+        gap: 0.4rem;
+      }
+
+      .nav-cta {
+        display: none;
+      }
+
+      .nav-toggle {
+        display: flex;
+      }
+    }
+
+    /* --------- DESKTOP : CTA + grilles ---------- */
+    @media (min-width: 768px) {
+      .nav-cta { display: inline-flex; }
+      .contact-grid {
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      }
+      .formats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .flavors-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 960px) {
+      .flavors-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    /* === ANIMATIONS GÉNÉRALES === */
+    @keyframes pop {
+      from { transform: scale(0.85); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .pop-in {
+      animation: pop 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease-out;
+    }
+/* ===== EFFET PREMIUM KEEP COLD ===== */
+
+.product-card,
+.flavor-card,
+.card,
+.pack-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.86);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+  border: 1px solid rgba(255,255,255,0.75);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.product-card:hover,
+.flavor-card:hover,
+.card:hover,
+.pack-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 26px 55px rgba(37, 99, 235, 0.22);
+}
+
+.product-card::before,
+.flavor-card::before,
+.card::before,
+.pack-card::before {
+  content: "";
+  position: absolute;
+  top: -80%;
+  left: -60%;
+  width: 70%;
+  height: 240%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,0.75),
+    transparent
+  );
+  transform: rotate(25deg);
+  animation: iceShine 5.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes iceShine {
+  0% { left: -80%; opacity: 0; }
+  20% { opacity: 0.85; }
+  45% { left: 130%; opacity: 0; }
+  100% { left: 130%; opacity: 0; }
+}
+
+button,
+.btn,
+.add-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+button:active,
+.btn:active,
+.add-btn:active {
+  transform: scale(0.96);
+}
+
+.btn-primary,
+.add-btn,
+button[onclick*="add"],
+button[onclick*="panier"] {
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+}
+
+.btn-primary::after,
+.add-btn::after,
+button[onclick*="add"]::after,
+button[onclick*="panier"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,0.45),
+    transparent
+  );
+  transform: translateX(-120%);
+  animation: buttonGlow 3.5s infinite;
+}
+
+@keyframes buttonGlow {
+  0% { transform: translateX(-120%); }
+  45% { transform: translateX(120%); }
+  100% { transform: translateX(120%); }
+}
+
+/* Petit badge premium */
+.premium-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(37,99,235,0.18);
+  box-shadow: 0 8px 20px rgba(15,23,42,0.08);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+/* ===== PANIER FLOTTANT PREMIUM ===== */
+
+#floating-cart {
+  position: fixed;
+  z-index: 99999;
+  right: 12px;
+  bottom: 14px;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  background: linear-gradient(135deg, rgba(37,99,235,0.96), rgba(34,197,94,0.94));
+  color: white;
+  box-shadow: 0 14px 30px rgba(37,99,235,0.45), 0 0 22px rgba(255,255,255,0.25);
+  backdrop-filter: blur(10px);
+}
+
+#floating-cart:hover {
+  transform: translateY(-4px) scale(1.03);
+
+  box-shadow:
+    0 22px 40px rgba(37,99,235,0.55),
+    0 0 28px rgba(255,255,255,0.35);
+}
+
+.floating-cart-icon img {
+  width: 34px;
+  height: auto;
+  display: block;
+}
+
+#floating-count {
+  font-size: 0.65rem;
+  opacity: 0.92;
+}
+
+#floating-total {
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+@keyframes floatingPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.03);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.page,
+main,
+section {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#floating-cart {
+  left: auto;
+  right: 14px;
+  bottom: 18px;
+  max-width: calc(100vw - 28px);
+}
+
+/* ===== ANIMATION AJOUT PANIER ===== */
+#floating-cart.cart-bounce {
+  animation: cartBounce 0.45s ease;
+}
+
+@keyframes cartBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.13); }
+  70% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+/* ===== MINI YETI QUI VOLE VERS LE PANIER ===== */
+
+.flying-yeti {
+  position: fixed;
+  z-index: 999999;
+  width: 44px;
+  height: auto;
+  pointer-events: none;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.25));
+  animation: flyToCart 2.8s ease-in-out forwards;
+}
+  .flying-yeti img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.25));
+}
+
+@keyframes floatingYetiJump{
+  0%{
+    transform: translateY(0) rotate(-4deg);
+  }
+
+  25%{
+    transform: translateY(-10px) rotate(2deg);
+  }
+
+  50%{
+    transform: translateY(-18px) rotate(-2deg) scale(1.04);
+  }
+
+  75%{
+    transform: translateY(-8px) rotate(3deg);
+  }
+
+  100%{
+    transform: translateY(0) rotate(-4deg);
+  }
+}
+
+@keyframes flyToCart {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1) rotate(-8deg);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translate(20px, -90px) scale(1.18) rotate(10deg);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translate(90px, -150px) scale(1.05) rotate(-12deg);
+  }
+
+  80% {
+    opacity: 1;
+    transform: translate(150px, -90px) scale(0.8) rotate(12deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(190px, -40px) scale(0.35) rotate(20deg);
+  }
+
+}
+.cart-yeti {
+  width: 34px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+/* ===== TRUST STRIP PREMIUM ===== */
+
+.trust-strip{
+  margin-top: 1rem;
+
+  display:flex;
+  flex-wrap:wrap;
+  gap:0.7rem;
+}
+
+.trust-pill{
+  position:relative;
+
+  padding:0.65rem 1rem;
+
+  border-radius:999px;
+
+  background:rgba(255,255,255,0.68);
+
+  border:1px solid rgba(255,255,255,0.7);
+
+  backdrop-filter:blur(14px);
+
+  box-shadow:
+    0 10px 25px rgba(37,99,235,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+
+  font-size:0.82rem;
+  font-weight:700;
+
+  color:#0f172a;
+
+  overflow:hidden;
+
+  animation:trustFloat 5s ease-in-out infinite;
+}
+
+.trust-pill:nth-child(2){
+  animation-delay:0.4s;
+}
+
+.trust-pill:nth-child(3){
+  animation-delay:0.8s;
+}
+
+.trust-pill:nth-child(4){
+  animation-delay:1.2s;
+}
+
+/* reflet premium */
+.trust-pill::before{
+  content:"";
+
+  position:absolute;
+
+  top:-120%;
+  left:-40%;
+
+  width:60%;
+  height:320%;
+
+  background:linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,0.8),
+    transparent
+  );
+
+  transform:rotate(25deg);
+
+  animation:trustShine 4.8s infinite;
+}
+
+/* hover desktop */
+.trust-pill:hover{
+  transform:translateY(-3px) scale(1.03);
+
+  box-shadow:
+    0 18px 35px rgba(37,99,235,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+@keyframes trustFloat{
+  0%,100%{
+    transform:translateY(0);
+  }
+
+  50%{
+    transform:translateY(-3px);
+  }
+}
+
+@keyframes trustShine{
+  0%{
+    left:-60%;
+    opacity:0;
+  }
+
+  15%{
+    opacity:0.9;
+  }
+
+  40%{
+    left:130%;
+    opacity:0;
+  }
+
+  100%{
+    left:130%;
+    opacity:0;
+  }
+}
+
+/* MOBILE */
+@media (max-width:768px){
+
+  .trust-strip{
+    gap:0.55rem;
+  }
+
+  .trust-pill{
+    font-size:0.74rem;
+    padding:0.55rem 0.8rem;
+  }
+
+}
+/* ===== PANIER FLOTTANT ULTRA PREMIUM ===== */
+
+#floating-cart{
+  position:fixed;
+
+  overflow:hidden;
+
+  isolation:isolate;
+}
+
+/* reflet animé */
+#floating-cart::before{
+  content:"";
+
+  position:absolute;
+
+  top:-120%;
+  left:-40%;
+
+  width:60%;
+  height:320%;
+
+  background:linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,0.85),
+    transparent
+  );
+
+  transform:rotate(24deg);
+
+  animation:floatingCartShine 4.5s infinite;
+
+  z-index:0;
+}
+
+/* glow vivant */
+#floating-cart::after{
+  content:"";
+
+  position:absolute;
+  inset:0;
+
+  border-radius:inherit;
+
+  background:radial-gradient(
+    circle at center,
+    rgba(255,255,255,0.18),
+    transparent 70%
+  );
+
+  opacity:0.8;
+
+  animation:floatingGlow 3.5s ease-in-out infinite;
+
+  z-index:0;
+}
+
+/* contenu au dessus */
+#floating-cart > *{
+  position:relative;
+  z-index:2;
+}
+
+/* mini respiration */
+#floating-cart{
+  animation:
+    floatingPulse 3s infinite,
+    floatingBreath 5s ease-in-out infinite;
+}
+
+/* image yeti */
+.cart-yeti{
+  transition:
+    transform 0.25s ease,
+    filter 0.25s ease;
+}
+
+/* hover */
+#floating-cart:hover .cart-yeti{
+  transform:scale(1.08) rotate(-4deg);
+
+  filter:drop-shadow(0 0 10px rgba(255,255,255,0.7));
+}
+
+/* texte */
+#floating-total{
+  letter-spacing:-0.02em;
+}
+
+/* effet ajout article */
+#floating-cart.cart-bounce{
+  animation:
+    cartBounce 0.45s ease,
+    floatingGlowFlash 0.5s ease;
+}
+
+/* KEYFRAMES */
+
+@keyframes floatingCartShine{
+  0%{
+    left:-60%;
+    opacity:0;
+  }
+
+  12%{
+    opacity:0.95;
+  }
+
+  40%{
+    left:140%;
+    opacity:0;
+  }
+
+  100%{
+    left:140%;
+    opacity:0;
+  }
+}
+
+@keyframes floatingGlow{
+  0%,100%{
+    opacity:0.55;
+  }
+
+  50%{
+    opacity:1;
+  }
+}
+
+@keyframes floatingBreath{
+  0%,100%{
+    transform:translateY(0);
+  }
+
+  50%{
+    transform:translateY(-3px);
+  }
+}
+
+@keyframes floatingGlowFlash{
+  0%{
+    filter:brightness(1);
+  }
+
+  50%{
+    filter:brightness(1.25);
+  }
+
+  100%{
+    filter:brightness(1);
+  }
+}
+/* ===== TOAST PREMIUM ===== */
+
+#toast-container{
+  position:fixed;
+
+  top:18px;
+  left:50%;
+
+  transform:translateX(-50%);
+
+  z-index:999999;
+
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+
+  pointer-events:none;
+}
+
+.toast{
+  display:flex;
+  align-items:center;
+  gap:12px;
+
+  min-width:240px;
+  max-width:90vw;
+
+  padding:14px 18px;
+
+  border-radius:22px;
+
+  background:rgba(255,255,255,0.72);
+
+  backdrop-filter:blur(16px);
+
+  border:1px solid rgba(255,255,255,0.75);
+
+  box-shadow:
+    0 18px 40px rgba(15,23,42,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+
+  color:#0f172a;
+
+  overflow:hidden;
+
+  animation:
+    toastIn 0.45s cubic-bezier(.22,.9,.34,1),
+    toastFloat 3s ease-in-out infinite;
+}
+
+.toast::before{
+  content:"";
+
+  position:absolute;
+
+  top:-120%;
+  left:-40%;
+
+  width:60%;
+  height:320%;
+
+  background:linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,0.85),
+    transparent
+  );
+
+  transform:rotate(24deg);
+
+  animation:toastShine 4s infinite;
+}
+
+.toast-icon{
+  font-size:1.2rem;
+
+  flex-shrink:0;
+}
+
+.toast-text{
+  font-size:0.9rem;
+  font-weight:700;
+}
+
+.toast-remove{
+  animation:toastOut 0.35s ease forwards;
+}
+
+/* ===== ANIMATIONS ===== */
+
+@keyframes toastIn{
+  0%{
+    opacity:0;
+    transform:
+      translateY(-18px)
+      scale(0.92);
+  }
+
+  100%{
+    opacity:1;
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+@keyframes toastOut{
+  0%{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  100%{
+    opacity:0;
+    transform:
+      translateY(-12px)
+      scale(0.92);
+  }
+}
+
+@keyframes toastFloat{
+  0%,100%{
+    transform:translateY(0);
+  }
+
+  50%{
+    transform:translateY(-2px);
+  }
+}
+
+@keyframes toastShine{
+  0%{
+    left:-60%;
+    opacity:0;
+  }
+
+  15%{
+    opacity:0.9;
+  }
+
+  40%{
+    left:140%;
+    opacity:0;
+  }
+
+  100%{
+    left:140%;
+    opacity:0;
+  }
+}
+/* ===== APPARITION MOBILE PREMIUM AU SCROLL ===== */
+
+.reveal-on-scroll{
+  opacity:0;
+  transform:translateY(24px) scale(0.98);
+  transition:
+    opacity 0.55s ease,
+    transform 0.55s cubic-bezier(.22,.9,.34,1);
+}
+
+.reveal-on-scroll.is-visible{
+  opacity:1;
+  transform:translateY(0) scale(1);
+}
+/* ===== BOUTONS + / - PREMIUM MOBILE ===== */
+
+.qty-control{
+  background:rgba(255,255,255,0.85);
+  border:1px solid rgba(37,99,235,0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    0 8px 18px rgba(15,23,42,0.08);
+  padding:4px 6px;
+  gap:8px;
+}
+
+.qty-control button{
+  width:30px;
+  height:30px;
+  background:linear-gradient(135deg,#2563eb,#22c55e);
+  color:white;
+  box-shadow:0 8px 18px rgba(37,99,235,0.28);
+  font-size:1.05rem;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease;
+}
+
+.qty-control button:hover{
+  filter:brightness(1.08);
+  box-shadow:0 12px 24px rgba(37,99,235,0.36);
+}
+
+.qty-control button:active{
+  transform:scale(0.88);
+}
+
+.qty-control span{
+  min-width:26px;
+  font-weight:800;
+  color:#0f172a;
+  font-size:0.95rem;
+}
+
+/* ===== PACKS KEEP COLD CLEAN PREMIUM ===== */
+
+.simple-pack-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  gap:1rem;
+
+  background:rgba(255,255,255,0.88);
+
+  border-radius:30px;
+
+  padding:1.4rem;
+
+  margin-top:1rem;
+
+  border:1px solid rgba(255,255,255,0.9);
+
+  backdrop-filter:blur(10px);
+
+  box-shadow:
+    0 16px 35px rgba(15,23,42,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.simple-pack-card:hover{
+  transform:translateY(-3px);
+
+  box-shadow:
+    0 22px 42px rgba(37,99,235,0.14);
+}
+
+.simple-pack-left h3{
+  font-size:2rem;
+
+  line-height:1.05;
+
+  color:#0f172a;
+
+  margin-bottom:0.45rem;
+}
+
+.simple-pack-left p{
+  font-size:1rem;
+
+  color:#6b7280;
+
+  margin-bottom:0.7rem;
+}
+
+.simple-pack-save{
+  font-size:1.9rem;
+
+  font-weight:900;
+
+  line-height:1.1;
+
+  background:linear-gradient(135deg,#0ea5e9,#22c55e);
+
+  -webkit-background-clip:text;
+
+  color:transparent;
+}
+
+.simple-pack-btn{
+  border:none;
+
+  min-width:150px;
+
+  height:88px;
+
+  border-radius:999px;
+
+  padding:0 1.3rem;
+
+  background:linear-gradient(135deg,#2563eb,#22c55e);
+
+  color:white;
+
+  font-size:1.15rem;
+
+  font-weight:900;
+
+  cursor:pointer;
+
+  box-shadow:
+    0 14px 28px rgba(37,99,235,0.28);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.simple-pack-btn:hover{
+  transform:translateY(-2px) scale(1.02);
+
+  box-shadow:
+    0 20px 38px rgba(37,99,235,0.38);
+}
+
+.simple-pack-btn:active{
+  transform:scale(0.96);
+}
+
+@media (max-width:640px){
+
+  .simple-pack-card{
+    padding:1.15rem;
+  }
+
+  .simple-pack-left h3{
+    font-size:1.55rem;
+  }
+
+  .simple-pack-save{
+    font-size:1.45rem;
+  }
+
+  .simple-pack-btn{
+    min-width:120px;
+
+    height:72px;
+
+    font-size:1rem;
+  }
+
+}
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y3XNM58SMN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Y3XNM58SMN');
+</script>
+</head>
+<body>
+<div class="page fade-in">
+
+  <!-- OVERLAY DU MENU MOBILE -->
+  <div class="menu-overlay" onclick="closeMenu()"></div>
+
+  <!-- HEADER -->
+  <header>
+    <nav class="nav">
+      <div class="logo-left">
+        <img src="logo-surf.png" alt="Logo Keep Cold" class="logo-img" />
+        <div>
+          <div class="logo-title">KEEP COLD</div>
+          <div class="logo-sub">Glaces à l'eau - Roquefort-la-Bédoule</div>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Bouton hamburger (mobile) -->
+        <button class="nav-toggle" onclick="toggleMenu()" aria-label="Ouvrir le menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <!-- Liens de navigation -->
+        <div class="nav-links">
+          <a class="nav-link" href="#hero" onclick="closeMenu()">Accueil</a>
+          <a class="nav-link" href="#formats" onclick="closeMenu()">Formats</a>
+          <a class="nav-link" href="#flavors" onclick="closeMenu()">Composer ma commande</a>
+          <a class="nav-link" href="#packs" onclick="closeMenu()">Packs</a>
+          <a class="nav-link" href="pro.html" onclick="closeMenu()">Devenir revendeur</a>
+          <a class="nav-link" href="#about" onclick="closeMenu()">Qui sommes-nous ?</a>
+          <a class="nav-link" href="#contact" onclick="closeMenu()">Contact</a>
+        </div>
+
+        <!-- Bouton Commander (desktop) -->
+        <button class="nav-cta" onclick="scrollToId('flavors')">
+          Commander
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- HERO AVEC BANNIÈRE -->
+    <section class="section hero" id="hero">
+      <div class="hero-banner-wrap">
+  <img src="banniere-surf.png" alt="Glaces à l'eau Keep Cold à Roquefort-la-Bédoule" class="hero-banner" />
+</div>
+
+      <div class="hero-bottom">
+        <p class="hero-text">
+  Des glaces à l'eau en tubes, fraîches, colorées et pratiques à partager tout l’été.
+  <strong>Sachet 70ml</strong> et <strong>sachet 150ml </strong>,
+  avec 10 parfums au choix pour petits et grands gourmands.
+</p>
+
+<div class="trust-strip">
+  <div class="trust-pill">🔒 Paiement sécurisé</div>
+  <div class="trust-pill">🇫🇷 Livraison France entière</div>
+  <div class="trust-pill">📦 Point relais disponible</div>
+  <div class="trust-pill">☀️ Les glaces du Sud</div>
+</div>
+        <div class="hero-buttons">
+          <button class="btn btn-primary" onclick="scrollToId('flavors')">Composer ma commande</button>
+          <button class="btn btn-outline" onclick="scrollToId('formats')">Voir les formats & packs</button>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- FORMATS & PRIX -->
+    <!-- (tout le reste de ton HTML est inchangé) -->
+
+    <!-- FORMATS & PRIX -->
+    <section class="section" id="formats">
+      <h2 class="title">Formats & prix</h2>
+      <p class="subtitle">
+        Les glaces sont vendues par sachets de 12 tubes glacés. Choisis ensuite les parfums dans la partie “Composer ma commande”.
+      </p>
+
+      <div class="formats-grid">
+        <article class="format fade-in">
+          <div class="format-top">
+            <div class="format-name">Sachet 70ml (12 glaces)</div>
+            <div class="format-price">3€</div>
+          </div>
+          <p>Format plus petit, parfait pour les enfants ou pour varier les parfums.</p>
+        </article>
+
+        <article class="format">
+          <div class="format-top">
+            <div class="format-name">Sachet 150ml (12 glaces)</div>
+            <div class="format-price">5€</div>
+          </div>
+          <p>Format généreux, pour les gros gourmands ou les soirées d’été bien chaudes.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- PARFUMS + COMPOSITION COMMANDE -->
+    <section class="section" id="flavors">
+      <h2 class="title">Compose ta commande</h2>
+      <p class="subtitle">
+        Choisis le nombre de sachets par parfum et par format. Le panier calcule le total automatiquement,
+        puis valide ta commande et règle en ligne.
+      </p>
+
+      <div class="flavors-grid">
+        <!-- Coca -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Coca 🥤</div>
+              <div class="flavor-note">Le classique incontournable en version glacée.</div>
+            </div>
+            <div class="flavor-tag">Best-seller</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('coca','70',-1)">−</button>
+                <span id="qty-coca-70">0</span>
+                <button type="button" onclick="changeQty('coca','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('coca','150',-1)">−</button>
+                <span id="qty-coca-150">0</span>
+                <button type="button" onclick="changeQty('coca','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Fraise -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Fraise 🍓</div>
+              <div class="flavor-note">Fruitée et douce, elle plaît à tout le monde.</div>
+            </div>
+            <div class="flavor-tag">Indémodable</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('fraise','70',-1)">−</button>
+                <span id="qty-fraise-70">0</span>
+                <button type="button" onclick="changeQty('fraise','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('fraise','150',-1)">−</button>
+                <span id="qty-fraise-150">0</span>
+                <button type="button" onclick="changeQty('fraise','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Menthe -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Menthe 🌿</div>
+              <div class="flavor-note">Ultra rafraîchissante, parfaite en plein soleil.</div>
+            </div>
+            <div class="flavor-tag">Très frais</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('menthe','70',-1)">−</button>
+                <span id="qty-menthe-70">0</span>
+                <button type="button" onclick="changeQty('menthe','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('menthe','150',-1)">−</button>
+                <span id="qty-menthe-150">0</span>
+                <button type="button" onclick="changeQty('menthe','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Citron -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Citron 🍋</div>
+              <div class="flavor-note">Acidulé comme il faut, léger et désaltérant.</div>
+            </div>
+            <div class="flavor-tag">Acidulé</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('citron','70',-1)">−</button>
+                <span id="qty-citron-70">0</span>
+                <button type="button" onclick="changeQty('citron','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('citron','150',-1)">−</button>
+                <span id="qty-citron-150">0</span>
+                <button type="button" onclick="changeQty('citron','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Passion -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Passion 🥭</div>
+              <div class="flavor-note">Une touche exotique pour voyager en une bouchée.</div>
+            </div>
+            <div class="flavor-tag">Exotique</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('passion','70',-1)">−</button>
+                <span id="qty-passion-70">0</span>
+                <button type="button" onclick="changeQty('passion','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('passion','150',-1)">−</button>
+                <span id="qty-passion-150">0</span>
+                <button type="button" onclick="changeQty('passion','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Anis -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Anis ⭐</div>
+              <div class="flavor-note">Pour ceux qui aiment les goûts marqués.</div>
+            </div>
+            <div class="flavor-tag">Original</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('anis','70',-1)">−</button>
+                <span id="qty-anis-70">0</span>
+                <button type="button" onclick="changeQty('anis','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('anis','150',-1)">−</button>
+                <span id="qty-anis-150">0</span>
+                <button type="button" onclick="changeQty('anis','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Cerise -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Cerise 🍒</div>
+              <div class="flavor-note">Gourmand et fruité, simple et efficace.</div>
+            </div>
+            <div class="flavor-tag">Fruit rouge</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('cerise','70',-1)">−</button>
+                <span id="qty-cerise-70">0</span>
+                <button type="button" onclick="changeQty('cerise','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('cerise','150',-1)">−</button>
+                <span id="qty-cerise-150">0</span>
+                <button type="button" onclick="changeQty('cerise','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Gum -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Gum 🍬</div>
+              <div class="flavor-note">Goût chewing-gum, fun et coloré.</div>
+            </div>
+            <div class="flavor-tag">Fun</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('gum','70',-1)">−</button>
+                <span id="qty-gum-70">0</span>
+                <button type="button" onclick="changeQty('gum','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('gum','150',-1)">−</button>
+                <span id="qty-gum-150">0</span>
+                <button type="button" onclick="changeQty('gum','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Melon -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Melon 🍈</div>
+              <div class="flavor-note">Doux et parfumé, parfait pour l’été.</div>
+            </div>
+            <div class="flavor-tag">Fruité</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('melon','70',-1)">−</button>
+                <span id="qty-melon-70">0</span>
+                <button type="button" onclick="changeQty('melon','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('melon','150',-1)">−</button>
+                <span id="qty-melon-150">0</span>
+                <button type="button" onclick="changeQty('melon','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Pomme -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Pomme 🍏</div>
+              <div class="flavor-note">Simple, frais, qui passe partout.</div>
+            </div>
+            <div class="flavor-tag">Classique</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('pomme','70',-1)">−</button>
+                <span id="qty-pomme-70">0</span>
+                <button type="button" onclick="changeQty('pomme','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('pomme','150',-1)">−</button>
+                <span id="qty-pomme-150">0</span>
+                <button type="button" onclick="changeQty('pomme','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article>
+      <!-- Assortiment -->
+        <article class="flavor-card">
+          <div class="flavor-header">
+            <div class="flavor-main">
+              <div class="flavor-name">Assortiment 🎉</div>
+              <div class="flavor-note">
+                Sac composé de 2 Coca, 2 Fraise, 2 Menthe, 2 Citron,
+                2 Passion et 2 Anis (12 glaces).
+              </div>
+            </div>
+            <div class="flavor-tag">Mix 6 parfums</div>
+          </div>
+          <div class="pack-controls">
+            <div class="pack-group">
+              <span class="pack-label">Sachets 70ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('assortiment','70',-1)">−</button>
+                <span id="qty-assortiment-70">0</span>
+                <button type="button" onclick="changeQty('assortiment','70',1)">+</button>
+              </div>
+            </div>
+            <div class="pack-group">
+              <span class="pack-label">Sachets 150ml</span>
+              <div class="qty-control">
+                <button type="button" onclick="changeQty('assortiment','150',-1)">−</button>
+                <span id="qty-assortiment-150">0</span>
+                <button type="button" onclick="changeQty('assortiment','150',1)">+</button>
+              </div>
+            </div>
+          </div>
+        </article></div>
+        
+<!-- OFFRES PACKS KEEP COLD -->
+<section class="section" id="packs">
+
+  <h2 class="title">🔥 Offres Packs Keep Cold</h2>
+
+  <p class="subtitle">
+    Compose ton pack de 10 sachets au choix et profite d’un tarif réduit.
+  </p>
+
+  <div class="simple-pack-card">
+
+    <div class="simple-pack-left">
+      <h3>Pack 70 ml</h3>
+
+      <p>10 sachets au choix</p>
+
+      <div class="simple-pack-save">
+        27 € au lieu de 30 €
+      </div>
+    </div>
+
+    <button
+      class="simple-pack-btn"
+      onclick="window.location.href='pack.html?format=70'"
+    >
+      Choisir →
+    </button>
+
+  </div>
+
+  <div class="simple-pack-card">
+
+    <div class="simple-pack-left">
+      <h3>Pack 150 ml</h3>
+
+      <p>10 sachets au choix</p>
+
+      <div class="simple-pack-save">
+        45 € au lieu de 50 €
+      </div>
+    </div>
+
+    <button
+      class="simple-pack-btn"
+      onclick="window.location.href='pack.html?format=150'"
+    >
+      Choisir →
+    </button>
+
+  </div>
+
+</section>
+        
+
+      <!-- RÉCAP PANIER -->
+      <div class="card cart-summary">
+        <h3>Récap de ta commande</h3>
+
+        <!-- Bouton vers la page panier -->
+        <button class="btn btn-outline" type="button" onclick="goToCart()" style="margin:0.4rem 0 0.7rem;">
+          Voir mon panier
+        </button>
+
+        <p><strong>Sachets 70ml :</strong> <span id="total-70">0</span></p>
+        <p><strong>Sachets 150ml :</strong> <span id="total-150">0</span></p>
+        <p style="margin-top:0.4rem;"><strong>Total estimé :</strong> <span id="total-euros">0,00 €</span></p>
+
+        <button class="btn btn-primary" type="button" onclick="goToCart()" style="margin-top:0.7rem;">
+  Voir mon panier & payer
+</button>
+
+        <p style="font-size:0.8rem; margin-top:0.4rem; color:var(--muted);">
+  Accède à ton panier, choisis ton point relais et règle ta commande en ligne.
+</p>
+      </div>
+
+    <!-- QUI SOMMES-NOUS -->
+    <section class="section" id="about">
+      <h2 class="title">Qui sommes-nous&nbsp;?</h2>
+      <p class="subtitle">
+        Keep Cold, c’est une petite entreprise locale basée à Roquefort-la-Bédoule,
+        spécialisée dans les glaces à l’eau en tubes.
+      </p>
+
+      <div class="card" style="max-width: 700px; margin: 0 auto;">
+        <p style="font-size: 0.95rem; color: var(--muted);">
+          Nous proposons des glaces rafraîchissantes et colorées, parfaites pour les familles,
+          les événements, les anniversaires, les soirées d’été ou les moments détente.
+          Notre objectif : apporter un maximum de fraîcheur et de plaisir, avec des parfums
+          que tout le monde aime et un service simple, rapide et local.
+        </p>
+        <p style="margin-top: 0.8rem; font-weight: 600; color: var(--blue-dark);">
+          Basés à Roquefort-la-Bédoule, nous servons toute la zone alentours,
+          toujours avec le sourire.
+        </p>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="section" id="contact">
+      <h2 class="title">Contact</h2>
+      <p class="subtitle">
+        Utilise les infos ci-dessous pour passer commande ou poser une question.
+        Tu peux commander directement en ligne via le panier sécurisé.
+      </p>
+
+      <div class="contact-grid">
+        <div class="card">
+          <h3>Coordonnées Keep Cold</h3>
+          <p>Email : <a href="mailto:contact@keepcold.fr">contact@keepcold.fr</a></p>
+          <p>Téléphone Fixe : 04 42 98 71 10<p>
+         </p>Portable : 06 59 87 36 10</p>
+          <p>Adresse : 106 Avenue des Carrières, 13830 Roquefort-la-Bédoule</p></p>
+        </div>
+
+        <div class="card">
+          <h3>Message rapide</h3>
+
+
+<form action="https://formspree.io/f/mpwgybbe" method="POST">
+    <input 
+        class="input"
+        type="text"
+        name="name"
+        placeholder="Ton nom"
+        required
+    />
+
+    <textarea 
+        class="textarea"
+        name="message"
+        placeholder="Ta demande (date, quantité, parfums...)"
+        required
+    ></textarea>
+
+    <button class="btn btn-primary" type="submit">
+        Envoyer
+    </button>
+</form>
+          <p style="font-size:0.8rem; margin-top:0.4rem; color:var(--muted);">
+            Tu peux aussi utiliser directement la partie “Composer ma commande” puis payer en ligne
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    © <span id="year"></span> Keep Cold - Glaces à l'eau.
+  </footer>
+</div>
+
+<script>
+  // Année automatique
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  // Scroll doux vers une section
+  function scrollToId(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  }
+
+  // Formulaire de contact (démo)
+  function handleSubmit(e) {
+    e.preventDefault();
+    alert("Formulaire de démonstration. Réponds ensuite au client par téléphone ou message.");
+  }
+
+  // MENU HAMBURGER
+  function toggleMenu() {
+    document.body.classList.toggle("menu-open");
+  }
+
+  function closeMenu() {
+    document.body.classList.remove("menu-open");
+  }
+
+  // --- LOGIQUE PANIER ---
+  const cart = {};
+  const PRICE_70 = 3;
+  const PRICE_150 = 5;
+  const CART_KEY = "keepcold-cart";
+
+  function changeQty(flavorKey, sizeKey, delta) {
+    const spanId = "qty-" + flavorKey + "-" + sizeKey;
+    const span = document.getElementById(spanId);
+    let q = parseInt(span.textContent, 10) || 0;
+    q += delta;
+    if (q < 0) q = 0;
+    span.textContent = q;
+
+    const id = flavorKey + "-" + sizeKey;
+    cart[id] = q;
+
+    updateCartSummary();
+    updateFloatingCart();
+    saveCartToStorage();
+    bounceFloatingCart();
+    launchFlyingYeti(event.target);
+    if(delta > 0){
+  showToast(flavorKey + " " + sizeKey + "ml ajouté au panier");
+}
+  }
+
+  function updateCartSummary() {
+    let total70 = 0, total150 = 0, totalEuros = 0;
+
+    for (const key in cart) {
+      const qty = cart[key];
+      if (!qty) continue;
+      if (key.endsWith("-70")) {
+        total70 += qty;
+        totalEuros += qty * PRICE_70;
+      } else if (key.endsWith("-150")) {
+        total150 += qty;
+        totalEuros += qty * PRICE_150;
+      }
+    }
+
+    document.getElementById("total-70").textContent = total70;
+    document.getElementById("total-150").textContent = total150;
+    document.getElementById("total-euros").textContent =
+      totalEuros.toFixed(2).replace(".", ",") + " €";
+  }
+
+  // --- LOCALSTORAGE ---
+  function saveCartToStorage() {
+    try {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    } catch (e) {
+      console.warn("Impossible de sauvegarder le panier :", e);
+    }
+  }
+
+  function loadCartFromStorage() {
+    try {
+      const raw = localStorage.getItem(CART_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      for (const key in saved) {
+        const qty = saved[key];
+        cart[key] = qty;
+
+        const spanId = "qty-" + key.replace("-", "-");
+        const span = document.getElementById(spanId);
+        if (span) span.textContent = qty;
+      }
+      updateCartSummary();
+updateFloatingCart();
+    } catch (e) {
+      console.warn("Impossible de charger le panier :", e);
+    }
+  }
+
+  // --- ENVOI WHATSAPP ---
+  function prepareWhatsApp() {
+    const flavorNames = {
+      coca: "Coca",
+      fraise: "Fraise",
+      menthe: "Menthe",
+      citron: "Citron",
+      passion: "Passion",
+      anis: "Anis",
+      cerise: "Cerise",
+      gum: "Gum",
+      melon: "Melon",
+      pomme: "Pomme",
+    };
+
+    let lines = [];
+    let total70 = 0, total150 = 0, totalEuros = 0;
+
+    for (const key in cart) {
+      const qty = cart[key];
+      if (!qty) continue;
+
+      const parts = key.split("-");
+      const flavorKey = parts[0];
+      const sizeKey = parts[1];
+      const sizeLabel = sizeKey === "70" ? "70ml (sachet de 12)" : "150ml (sachet de 12)";
+      const price = sizeKey === "70" ? PRICE_70 : PRICE_150;
+      const lineTotal = qty * price;
+
+      lines.push(
+        "- " + qty + " × " + (flavorNames[flavorKey] || flavorKey) + " " +
+        sizeLabel + " (" + lineTotal.toFixed(2).replace(".", ",") + " €)"
+      );
+
+      if (sizeKey === "70") total70 += qty; else total150 += qty;
+      totalEuros += lineTotal;
+    }
+
+    if (lines.length === 0) {
+      alert("Ajoute au moins un sachet à ta commande avant d'envoyer 😉");
+      return;
+    }
+
+    let message =
+      "Bonjour, je souhaite commander des glaces Keep Cold :\n\n" +
+      lines.join("\n") +
+      "\n\nTotal sachets 70ml : " + total70 +
+      "\nTotal sachets 150ml : " + total150 +
+      "\nTotal estimé : " + totalEuros.toFixed(2).replace(".", ",") + " €" +
+      "\n\nMerci !";
+
+    const phone = "33624947059"; // ton numéro au format international sans le +
+
+    const url =
+      "https://api.whatsapp.com/send?phone=" +
+      phone +
+      "&text=" +
+      encodeURIComponent(message);
+
+    saveCartToStorage();
+    window.open(url, "_blank");
+  }
+
+  // --- ALLER SUR LA PAGE PANIER ---
+  function goToCart() {
+    saveCartToStorage();
+    window.location.href = "panier.html";
+  }
+
+  // Charger automatiquement le panier au chargement de la page
+  loadCartFromStorage();
+  // relance animation bannière
+window.addEventListener("load", function () {
+  const banner = document.querySelector(".hero-banner");
+  if (banner) {
+    banner.style.animation = "none";
+    banner.offsetHeight;
+    banner.style.animation = "kcBannerIn 0.9s ease-out forwards";
+  }
+});
+
+function updateFloatingCart() {
+  let totalItems = 0;
+  let totalPrice = 0;
+
+  for (const key in cart) {
+    const qty = cart[key];
+
+    if (!qty) continue;
+
+    totalItems += qty;
+
+    if (key.endsWith("-70")) {
+      totalPrice += qty * PRICE_70;
+    }
+
+    if (key.endsWith("-150")) {
+      totalPrice += qty * PRICE_150;
+    }
+  }
+
+  const countEl = document.getElementById("floating-count");
+  const totalEl = document.getElementById("floating-total");
+
+  if (!countEl || !totalEl) return;
+
+  countEl.textContent =
+    totalItems + (totalItems > 1 ? " articles" : " article");
+
+  totalEl.textContent =
+    totalPrice.toFixed(2).replace(".", ",") + " €";
+}
+
+function bounceFloatingCart() {
+  const cartBtn = document.getElementById("floating-cart");
+  if (!cartBtn) return;
+
+  cartBtn.classList.remove("cart-bounce");
+  void cartBtn.offsetWidth;
+  cartBtn.classList.add("cart-bounce");
+}
+
+function launchFlyingYeti(btn) {
+  const rect = btn.getBoundingClientRect();
+
+  const yeti = document.createElement("img");
+  yeti.src = "mini-yeti.webp";
+  yeti.alt = "mini yeti";
+  yeti.className = "flying-yeti";
+
+  yeti.style.left = rect.left + "px";
+  yeti.style.top = rect.top + "px";
+
+  document.body.appendChild(yeti);
+
+  setTimeout(() => {
+    yeti.remove();
+  }, 2800);
+}
+function showToast(message){
+
+  const container =
+    document.getElementById("toast-container");
+
+  if(!container) return;
+
+  const toast =
+    document.createElement("div");
+
+  toast.className = "toast";
+
+  toast.innerHTML = `
+    <div class="toast-icon">🧊</div>
+    <div class="toast-text">${message}</div>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("toast-remove");
+  }, 2200);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 2600);
+}
+function initRevealOnScroll(){
+  const elements = document.querySelectorAll(
+    ".flavor-card, .format, .card, .trust-pill"
+  );
+
+  elements.forEach((el, index) => {
+    el.classList.add("reveal-on-scroll");
+    el.style.transitionDelay = Math.min(index * 60, 360) + "ms";
+  });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if(entry.isIntersecting){
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.12
+  });
+
+  elements.forEach((el) => observer.observe(el));
+}
+
+window.addEventListener("load", initRevealOnScroll);
+</script>
+<!-- PANIER FLOTTANT PREMIUM -->
+<a href="panier.html" id="floating-cart">
+  <div class="floating-cart-icon">
+<img src="mini-yeti.webp" class="cart-yeti">
+</div>
+
+  <div class="floating-cart-info">
+    <span id="floating-count">0 article</span>
+    <strong id="floating-total">0,00 €</strong>
+  </div>
+</a>
+<div id="toast-container"></div>
+<script>
+
+const parfums = [
+  "Coca",
+  "Fraise",
+  "Menthe",
+  "Citron",
+  "Passion",
+  "Anis"
+];
+
+const pack70 = {};
+const pack150 = {};
+
+function renderPackProducts() {
+
+  const p70 = document.getElementById("pack70-products");
+  const p150 = document.getElementById("pack150-products");
+
+  parfums.forEach(parfum => {
+
+    pack70[parfum] = 0;
+    pack150[parfum] = 0;
+
+    p70.innerHTML += `
+      <div class="pack-line">
+        <span>${parfum}</span>
+
+        <button onclick="changePackQty('70','${parfum}',-1)">-</button>
+
+        <span id="70-${parfum}">0</span>
+
+        <button onclick="changePackQty('70','${parfum}',1)">+</button>
+      </div>
+    `;
+
+    p150.innerHTML += `
+      <div class="pack-line">
+        <span>${parfum}</span>
+
+        <button onclick="changePackQty('150','${parfum}',-1)">-</button>
+
+        <span id="150-${parfum}">0</span>
+
+        <button onclick="changePackQty('150','${parfum}',1)">+</button>
+      </div>
+    `;
+
+  });
+
+}
+
+function changePackQty(type, parfum, delta) {
+
+  const obj = type === "70" ? pack70 : pack150;
+
+  const total = Object.values(obj).reduce((a,b)=>a+b,0);
+
+  if(delta > 0 && total >= 10) return;
+
+  obj[parfum] += delta;
+
+  if(obj[parfum] < 0) obj[parfum] = 0;
+
+  document.getElementById(`${type}-${parfum}`).innerText =
+    obj[parfum];
+
+  updateTotals();
+
+}
+
+function updateTotals() {
+
+  document.getElementById("pack70-count").innerText =
+    Object.values(pack70).reduce((a,b)=>a+b,0);
+
+  document.getElementById("pack150-count").innerText =
+    Object.values(pack150).reduce((a,b)=>a+b,0);
+
+}
+
+function addPack70ToCart() {
+
+  const total =
+    Object.values(pack70).reduce((a,b)=>a+b,0);
+
+  if(total !== 10) {
+    alert("Choisissez exactement 10 sachets");
+    return;
+  }
+
+  alert("Pack 70 ml ajouté au panier - 27 €");
+
+  console.log(pack70);
+
+}
+
+function addPack150ToCart() {
+
+  const total =
+    Object.values(pack150).reduce((a,b)=>a+b,0);
+
+  if(total !== 10) {
+    alert("Choisissez exactement 10 sachets");
+    return;
+  }
+
+  alert("Pack 150 ml ajouté au panier - 45 €");
+
+  console.log(pack150);
+
+}
+
+renderPackProducts();
+
+</script>
+</body>
+</html>
