@@ -129,10 +129,32 @@
     }
 
     .cart-format-group {
+      position: relative;
       overflow: hidden;
-      border: 1px solid #dbeafe;
-      border-radius: 14px;
-      background: #f8fbff;
+      border: 1px solid rgba(125, 211, 252, 0.72);
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 88% 12%, rgba(255,255,255,0.95) 0 3px, transparent 4px),
+        radial-gradient(circle at 78% 22%, rgba(186,230,253,0.8) 0 2px, transparent 3px),
+        linear-gradient(145deg, rgba(255,255,255,0.96), rgba(224,242,254,0.78));
+      box-shadow:
+        0 14px 30px rgba(2, 132, 199, 0.14),
+        inset 0 1px 0 rgba(255,255,255,0.95),
+        inset 0 -8px 18px rgba(14,165,233,0.06);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .cart-format-group::after {
+      content: "❄";
+      position: absolute;
+      right: 0.7rem;
+      bottom: 0.15rem;
+      color: rgba(14, 165, 233, 0.10);
+      font-size: 3.8rem;
+      line-height: 1;
+      transform: rotate(12deg);
+      pointer-events: none;
     }
 
     .cart-format-title {
@@ -140,16 +162,33 @@
       align-items: center;
       justify-content: space-between;
       margin: 0;
-      padding: 0.7rem 0.8rem;
+      position: relative;
+      padding: 0.9rem 1rem;
       color: #fff;
-      background: linear-gradient(120deg, #0284c7, #2563eb);
-      font-size: 0.92rem;
+      background:
+        linear-gradient(105deg, rgba(255,255,255,0.26), transparent 34%),
+        linear-gradient(125deg, #075985 0%, #0284c7 44%, #38bdf8 100%);
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+      text-shadow: 0 1px 3px rgba(3, 42, 74, 0.35);
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,0.28);
+    }
+
+    .cart-format-title::before {
+      content: "❄";
+      margin-right: 0.45rem;
+      color: #e0f2fe;
+      filter: drop-shadow(0 0 5px rgba(255,255,255,0.75));
     }
 
     .cart-format-title span {
       font-size: 0.72rem;
       font-weight: 500;
-      opacity: 0.9;
+      opacity: 0.96;
+      padding: 0.24rem 0.5rem;
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.15);
     }
 
     .cart-format-content {
@@ -162,7 +201,7 @@
       justify-content: space-between;
       gap: 0.6rem;
       padding: 0.55rem 0;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid rgba(186, 230, 253, 0.75);
     }
 
     .cart-row:last-child {
@@ -200,17 +239,20 @@
       display: inline-flex;
       align-items: center;
       overflow: hidden;
-      border: 1px solid #bfdbfe;
+      position: relative;
+      z-index: 1;
+      border: 1px solid #7dd3fc;
       border-radius: 999px;
-      background: #fff;
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 4px 12px rgba(2,132,199,0.12);
     }
 
     .qty-control button {
       width: 32px;
       height: 32px;
       border: 0;
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: linear-gradient(180deg, #f0f9ff, #dbeafe);
+      color: #0369a1;
       font-size: 1.1rem;
       font-weight: 800;
       cursor: pointer;
@@ -220,16 +262,6 @@
       min-width: 30px;
       text-align: center;
       color: #0f172a;
-    }
-
-    .cart-packs-group {
-      grid-column: 1 / -1;
-      border-color: #fed7aa;
-      background: #fff7ed;
-    }
-
-    .cart-packs-group .cart-format-title {
-      background: linear-gradient(120deg, #ea580c, #f59e0b);
     }
 
     .cart-empty {
@@ -531,8 +563,6 @@ style="padding:0.7rem; border:1px solid #d1d5db; border-radius:0.5rem; font-size
   const PRICE_70 = 3;
   const PRICE_150 = 5;
   const CART_KEY = "keepcold-cart";
-  const PACK_KEY = "keepcold-packs";
-let packs = [];
 
   const flavorNames = {
     coca: "Coca",
@@ -568,22 +598,9 @@ function getCartTotals() {
     if (key.endsWith("-150")) {
       total150 += qty;
       totalEuros += qty * PRICE_150;
-      poids += qty * 1.84;
+      poids += qty * 1.084;
     }
   }
-packs.forEach(pack => {
-  totalEuros += pack.price || 0;
-
-  if (pack.format === "70") {
-    total70 += 10;
-    poids += 10 * 0.84;
-  }
-
-  if (pack.format === "150") {
-    total150 += 10;
-    poids += 10 * 1.84;
-  }
-});
   let livraison = 0;
 
   if (poids >= 1 && poids < 4) {
@@ -618,9 +635,6 @@ packs.forEach(pack => {
       cart = {};
     }
   }
-  const rawPacks = localStorage.getItem(PACK_KEY);
-packs = rawPacks ? JSON.parse(rawPacks) : [];
-
   function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   }
@@ -686,32 +700,6 @@ packs = rawPacks ? JSON.parse(rawPacks) : [];
 
       container.appendChild(group);
     });
-
-    if (packs.length) {
-      hasItems = true;
-      const group = document.createElement("section");
-      group.className = "cart-format-group cart-packs-group";
-      group.innerHTML = '<h2 class="cart-format-title">Packs avantage</h2><div class="cart-format-content"></div>';
-      const groupContent = group.querySelector(".cart-format-content");
-
-      packs.forEach(pack => {
-        const details = Object.entries(pack.items || {})
-          .filter(([, qty]) => qty > 0)
-          .map(([key, qty]) => qty + " × " + (flavorNames[key] || key))
-          .join(", ");
-        const row = document.createElement("div");
-        row.className = "cart-row";
-        row.innerHTML = `
-          <div class="cart-row-main">
-            <div class="cart-row-title">Pack ${pack.format} ml</div>
-            <div class="cart-row-meta">${details || "10 sachets au choix"}</div>
-          </div>
-          <div class="cart-row-total">${Number(pack.price || 0).toFixed(2).replace(".", ",")} €</div>
-        `;
-        groupContent.appendChild(row);
-      });
-      container.appendChild(group);
-    }
 
     if (!hasItems) {
       const empty = document.createElement("div");
@@ -800,8 +788,7 @@ poids: totals.poids,
 relais: relaisChoisi,
 
 cart: {
-  produits: cart,
-  packs: packs
+  produits: cart
 }
 })
     });
@@ -1003,8 +990,6 @@ function prepareWhatsApp() {
     cart = {};
     try {
       localStorage.removeItem(CART_KEY);
-      localStorage.removeItem(PACK_KEY);
-packs = [];
     } catch (e) {
       console.warn("Erreur en vidant le panier :", e);
     }
