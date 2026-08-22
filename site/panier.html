@@ -564,6 +564,9 @@ style="padding:0.7rem; border:1px solid #d1d5db; border-radius:0.5rem; font-size
   const PRICE_150 = 5;
   const CART_KEY = "keepcold-cart";
 
+  // Les anciennes offres pack sont désactivées : on nettoie leur ancien panier local.
+  localStorage.removeItem("keepcold-packs");
+
   const flavorNames = {
     coca: "Coca",
     fraise: "Fraise",
