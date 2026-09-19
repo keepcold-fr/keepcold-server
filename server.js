@@ -7,6 +7,13 @@ const orders = {};
 const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const SHOP_PAUSE_MESSAGE =
+  "Les commandes en ligne sont temporairement suspendues pendant la pause hivernale.";
+
+function areOrdersOpen() {
+  return String(process.env.ORDERS_OPEN || "false").trim().toLowerCase() === "true";
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
@@ -30,6 +37,14 @@ app.use((req, res, next) => {
 ========================= */
 app.get("/", (req, res) => {
   res.send("🚀 Serveur KeepCold OK");
+});
+
+app.get("/shop-status", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({
+    orders_open: areOrdersOpen(),
+    message: areOrdersOpen() ? "Les commandes sont ouvertes." : SHOP_PAUSE_MESSAGE
+  });
 });
 
 /* =========================
@@ -89,6 +104,14 @@ function checkAdmin(req, res) {
 ========================= */
 app.post("/create-checkout", async (req, res) => {
   try {
+    if (!areOrdersOpen()) {
+      return res.status(503).json({
+        success: false,
+        code: "ORDERS_PAUSED",
+        error: SHOP_PAUSE_MESSAGE
+      });
+    }
+
     const { amount, email, nom, tel, addr, cp, ville, relais, cart } = req.body;
 
     if (!amount || !email || !nom || !tel || !addr || !cp || !ville || !relais) {
